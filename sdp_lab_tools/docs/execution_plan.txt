@@ -1,0 +1,477 @@
+Execution Plan
+
+The prompt above is the architectural contract. I would execute it using the following development sequence.
+
+Stage 0 — Repository Bootstrap
+
+Before writing analyzer logic:
+
+scent/
+├── Cargo.toml
+├── Cargo.lock
+├── crates/
+├── fixtures/
+├── tests/
+├── docs/
+├── examples/
+├── .github/
+└── smell_detector.toml
+
+Set up:
+
+Rust stable
+cargo fmt
+cargo clippy
+cargo test
+CI
+semantic versioning
+conventional error handling
+deterministic serialization
+First CI gate
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test --workspace
+Stage 1 — Domain Foundation
+
+Build the smallest stable domain layer first.
+
+EntityId
+ProjectId
+FileId
+TypeId
+MethodId
+FieldId
+FindingId
+EdgeId
+CommitId
+
+Then:
+
+SourceLocation
+NormalizedPath
+Diagnostic
+Severity
+RiskLevel
+AnalysisScope
+
+This gives every subsequent crate a stable vocabulary.
+
+Stage 2 — Project Discovery
+
+C# discovery:
+
+directory
+ ↓
+.sln?
+ ↓
+.csproj?
+ ↓
+source files
+ ↓
+exclusions
+
+Support:
+
+*.sln
+*.slnx if applicable
+*.csproj
+*.cs
+
+Don't try to implement full MSBuild evaluation initially.
+
+Instead explicitly report:
+
+Project discovered
+Project partially resolved
+Project unresolved
+Stage 3 — C# Parsing
+
+Use Tree-sitter C#.
+
+Create:
+
+CSharpAdapter
+CSharpSyntaxExtractor
+CSharpDeclarationIndexer
+CSharpReferenceResolver
+
+The extractor should understand the syntax needed for the first IR.
+
+Stage 4 — Semantic IR
+
+Example:
+
+Project
+ ├── Files
+ │    └── Namespaces
+ │         └── Types
+ │              ├── Fields
+ │              ├── Properties
+ │              └── Methods
+ │                   ├── Parameters
+ │                   ├── Calls
+ │                   ├── Field accesses
+ │                   └── Type references
+
+The important distinction:
+
+IR represents what the source says.
+
+It doesn't say:
+
+"this class is bad"
+Stage 5 — Resolution
+
+This is arguably the hardest Phase 1 component.
+
+Build:
+
+SymbolTable
+TypeIndex
+MethodIndex
+FieldIndex
+NamespaceIndex
+
+Then resolve:
+
+Foo()
+foo.Bar()
+new Customer()
+Customer.Address
+
+Resolution confidence becomes part of later analysis.
+
+Stage 6 — Suppression
+
+Before rules:
+
+Source
+ ↓
+SuppressionScanner
+ ↓
+SuppressionMap
+
+Then:
+
+Rules
+ ↓
+SuppressionMap
+
+Rules never parse comments.
+
+Stage 7 — Metrics
+
+Build the metric framework before implementing smell rules.
+
+MetricCalculator
+        │
+        ├── LOC
+        ├── CC
+        ├── Nesting
+        ├── LCOM4
+        └── CBO
+
+This makes the smell engine much cleaner.
+
+Stage 8 — Dependency Graph
+
+The graph becomes the shared infrastructure for:
+
+CBO
+LCOM4
+Feature Envy
+Inappropriate Intimacy
+Refused Bequest
+Pattern Advisor
+
+This is why the graph must be implemented before the rules.
+
+Stage 9 — Evidence Engine
+
+Don't implement 12 smell rules with custom scoring logic.
+
+Create:
+
+EvidenceCollector
+EvidenceNormalizer
+EvidenceAggregator
+ConfidenceCalculator
+SeverityCalculator
+
+Then rules become mostly:
+
+collect evidence
+ ↓
+evaluate
+ ↓
+emit finding
+
+This is where the architecture becomes scalable.
+
+Stage 10 — Rule Registry
+
+Create:
+
+RuleRegistry
+
+with:
+
+register(rule)
+get(rule_id)
+all()
+enabled()
+
+Configuration determines activation.
+
+Later external/plugin rules can be added without changing the core engine.
+
+Stage 11 — Smell Rules
+
+Recommended implementation order:
+
+1. Long Parameter List
+2. Long Method
+3. Large Class
+4. Duplicated Code
+5. Feature Envy
+6. Switch Statements
+7. Data Clumps
+8. Primitive Obsession
+9. Inappropriate Intimacy
+10. Refused Bequest
+11. Speculative Generality
+12. Git-based Divergent Change
+13. Git-based Shotgun Surgery
+
+This order follows increasing complexity.
+
+Stage 12 — Git Intelligence
+
+Don't start with sophisticated machine learning.
+
+Use deterministic empirical statistics:
+
+commit frequency
+co-change frequency
+entity clustering
+change dispersion
+
+For example:
+
+A + B changed together:
+12 / 40 relevant commits
+
+That is explainable.
+
+Stage 13 — Principle Engine
+
+Don't make principle analysis another set of unrelated rules.
+
+Instead:
+
+Findings
+   +
+Evidence
+   +
+Metrics
+   +
+Graph
+       ↓
+Principle Risk Engine
+
+Example:
+
+Long Method
++ high CC
++ low cohesion
+       ↓
+KISS risk
+SRP risk
+Stage 14 — Pattern Engine
+
+Pattern advisor should operate independently.
+
+For example:
+
+Switch
+ ├── type discriminator
+ │      → Strategy
+ │
+ ├── state transition
+ │      → State
+ │
+ └── object construction
+        → Factory
+
+This prevents the common mistake:
+
+"Switch detected → recommend Strategy."
+
+Stage 15 — LLM Integration
+
+I would not make direct LLM API integration part of v1.0.
+
+Instead make SCENT LLM-ready.
+
+Provide:
+
+scent review --diff --format json
+
+and:
+
+scent explain FINDING_ID --format json
+
+Then any agent can consume it.
+
+This keeps SCENT deterministic and vendor-neutral.
+
+Later you can add:
+
+scent ai review
+
+if there is a compelling reason.
+
+Stage 16 — TUI
+
+Only build the TUI after the underlying analytical model is stable.
+
+Otherwise you end up designing UI around unstable APIs.
+
+TUI should consume:
+
+AnalysisSnapshot
+
+not directly inspect AST/parser internals.
+
+Stage 17 — Sandbox
+
+Keep execution completely separate from analysis.
+
+Analysis
+   │
+   └── independent
+
+Execution
+   │
+   └── Docker
+
+This is both cleaner and safer.
+
+Stage 18 — Caching
+
+Cache layers:
+
+Source hash
+   ↓
+Parse cache
+   ↓
+Semantic IR cache
+   ↓
+Metric cache
+   ↓
+Graph cache
+
+Don't cache findings independently initially because rule/config changes can invalidate them.
+
+Cache the lower-level deterministic artifacts.
+
+Stage 19 — C++ Support
+
+Only after C# is mature.
+
+Reuse:
+
+Semantic IR
+MetricStore
+DependencyGraph
+Rule engine
+Evidence engine
+Finding model
+TUI
+JSON
+SARIF
+Baseline
+
+Only replace:
+
+parser
+semantic extractor
+resolver
+project discovery
+build provider
+
+That validates whether the language-agnostic architecture actually worked.
+
+Recommended Final Architecture
+                         ┌────────────────────┐
+                         │      scent-cli      │
+                         └─────────┬──────────┘
+                                   │
+                                   ▼
+                         ┌────────────────────┐
+                         │     scent-core     │
+                         │   Orchestration    │
+                         └─────────┬──────────┘
+                                   │
+              ┌────────────────────┼────────────────────┐
+              │                    │                    │
+              ▼                    ▼                    ▼
+       ┌────────────┐       ┌────────────┐       ┌────────────┐
+       │   Parser   │       │  Metrics   │       │   Graph    │
+       │ C# / C++   │       │  Engine    │       │   Engine   │
+       └─────┬──────┘       └─────┬──────┘       └─────┬──────┘
+             │                    │                    │
+             └──────────────┬─────┴────────────────────┘
+                            ▼
+                    ┌───────────────┐
+                    │ Semantic IR   │
+                    │ Semantic Facts│
+                    └───────┬───────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ Evidence      │
+                    │ Engine        │
+                    └───────┬───────┘
+                            │
+              ┌─────────────▼─────────────┐
+              │       Rule Engine         │
+              │ Refactoring.Guru Smells  │
+              └─────────────┬─────────────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │ Finding Model │
+                    └───────┬───────┘
+                            │
+           ┌────────────────┼─────────────────┐
+           ▼                ▼                 ▼
+      Principle          Pattern          Refactoring
+        Risk             Advisor            Advisor
+           │                │                 │
+           └────────────────┼─────────────────┘
+                            ▼
+                    ┌───────────────┐
+                    │   Snapshot    │
+                    └───────┬───────┘
+                            │
+           ┌────────────────┼────────────────┐
+           ▼                ▼                ▼
+          TUI              JSON            SARIF
+           │                │                │
+           │                ▼                ▼
+           │            Baseline        Quality Gate
+           │
+           ▼
+     Developer / LLM Agent
+One important product decision
+
+I would position SCENT as:
+
+An evidence-based semantic code-quality and architecture analyzer for human and AI-assisted software development.
+
+Not:
+
+"AI code detector."
+
+The former has a defensible technical foundation and a useful long-term market. The latter is mostly a classification gimmick.

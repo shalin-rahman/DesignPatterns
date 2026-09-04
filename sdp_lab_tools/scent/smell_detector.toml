@@ -1,0 +1,7 @@
+[project]
+target_languages = ["csharp"]
+max_parallel_jobs = 8
+cache_directory = ".scent_cache"
+
+[exclusions]
+paths = ["**/bin/**", "**/obj/**", "**/generated/**", "**/*.g.cs", "**/*.Designer.cs"]

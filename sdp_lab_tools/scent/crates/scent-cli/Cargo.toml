@@ -1,0 +1,15 @@
+[package]
+name = "scent-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "scent"
+path = "src/main.rs"
+
+[dependencies]
+scent-core = { path = "../scent-core" }
+
+[lints]
+workspace = true

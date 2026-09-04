@@ -1,0 +1,13 @@
+[package]
+name = "scent-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+scent-domain = { path = "../scent-domain" }
+scent-ir = { path = "../scent-ir" }
+scent-parser = { path = "../scent-parser" }
+
+[lints]
+workspace = true
