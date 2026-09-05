@@ -6,7 +6,11 @@
 # does not suggest file paths (PowerShell's own path completion already
 # handles <path>).
 #
-# Install for this session only, from the scent/ directory:
+# Install for this session only, from the scent/ directory. The leading
+# dot and space matter ("dot-sourcing") — running it as
+# .\completions\scent.ps1 (no space) runs it in a throwaway child scope,
+# so Register-ArgumentCompleter has no lasting effect and completion
+# silently does not work:
 #   . completions/scent.ps1
 #
 # Install permanently: add this to your PowerShell profile ($PROFILE),

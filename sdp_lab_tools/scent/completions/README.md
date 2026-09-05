@@ -24,6 +24,9 @@ automatically. So these two files are hand-written and limited:
 
 ## Install
 
+Run the script for *your* shell only — `scent.bash` is a bash script and
+does nothing useful if you run it from PowerShell, and vice versa.
+
 **bash**, for the current session (run from the `scent/` directory):
 
 ```bash
@@ -37,7 +40,13 @@ real absolute path, since `~/.bashrc` doesn't run from `scent/`:
 source /absolute/path/to/scent/completions/scent.bash
 ```
 
-**PowerShell**, for the current session (run from the `scent/` directory):
+**PowerShell**, for the current session (run from the `scent/` directory).
+The leading `.` and space are required — this is "dot-sourcing," which
+runs the script in your current session so `Register-ArgumentCompleter`
+sticks. Running it as `.\completions\scent.ps1` (no space) or
+double-clicking it instead runs it in a throwaway child scope and the
+completion is discarded the moment the script ends — so it "does
+nothing" with no error:
 
 ```powershell
 . completions/scent.ps1
