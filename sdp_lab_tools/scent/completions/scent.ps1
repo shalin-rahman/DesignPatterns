@@ -48,3 +48,5 @@ Register-ArgumentCompleter -Native -CommandName scent -ScriptBlock {
         Where-Object { $_ -like "$wordToComplete*" } |
         ForEach-Object { [System.Management.Automation.CompletionResult]::new($_, $_, 'ParameterValue', $_) }
 }
+
+Write-Host "scent: tab-completion enabled. Try: scent <Tab>  or  scent analyze --<Tab>"

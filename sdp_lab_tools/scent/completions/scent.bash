@@ -35,3 +35,5 @@ _scent_completions() {
 }
 
 complete -F _scent_completions scent
+
+echo "scent: tab-completion enabled. Try: scent <Tab>  or  scent analyze --<Tab>"
