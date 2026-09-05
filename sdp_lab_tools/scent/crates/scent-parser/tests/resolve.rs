@@ -35,8 +35,7 @@ fn build_project(sources: &[(&str, &str)]) -> ProjectIR {
 fn resolves_an_exact_intra_project_type_reference() {
     let project = build_project(&[(
         "src/Order.cs",
-        "namespace Demo { public class Order {} \
-             public class OrderFactory { public void Create() { new Order(); } } }",
+        include_str!("fixtures/TestSubjects/src/ExactTypeReference.cs"),
     )]);
     let index = DeclarationIndex::build(&project);
     let resolved = resolve_project(project, &index);
@@ -56,11 +55,7 @@ fn resolves_an_exact_intra_project_type_reference() {
 fn leaves_an_overload_ambiguous_call_unresolved() {
     let project = build_project(&[(
         "src/Order.cs",
-        "namespace Demo { public class Order { \
-             public void Process() { this.Ship(); } \
-             public void Ship() {} \
-             public void Ship(int retries) {} \
-         } }",
+        include_str!("fixtures/TestSubjects/src/AmbiguousOverload.cs"),
     )]);
     let index = DeclarationIndex::build(&project);
     let resolved = resolve_project(project, &index);
@@ -82,9 +77,7 @@ fn leaves_an_overload_ambiguous_call_unresolved() {
 fn leaves_an_unknown_framework_type_unresolved() {
     let project = build_project(&[(
         "src/Order.cs",
-        "namespace Demo { public class Order { \
-             public void Process() { new System.Guid(); } \
-         } }",
+        include_str!("fixtures/TestSubjects/src/UnknownFrameworkType.cs"),
     )]);
     let index = DeclarationIndex::build(&project);
     let resolved = resolve_project(project, &index);
@@ -102,9 +95,7 @@ fn leaves_an_unknown_framework_type_unresolved() {
 fn leaves_an_unresolved_member_access_unresolved() {
     let project = build_project(&[(
         "src/Order.cs",
-        "namespace Demo { public class Order { \
-             public void Process() { var value = this.Missing; } \
-         } }",
+        include_str!("fixtures/TestSubjects/src/UnresolvedMemberAccess.cs"),
     )]);
     let index = DeclarationIndex::build(&project);
     let resolved = resolve_project(project, &index);
@@ -125,12 +116,7 @@ fn leaves_an_unresolved_member_access_unresolved() {
 fn resolves_a_call_routed_through_a_local_variable() {
     let project = build_project(&[(
         "src/Order.cs",
-        "namespace Demo { \
-             public class Order { \
-                 public void Ship() { Warehouse w = new Warehouse(); w.Reserve(); } \
-             } \
-             public class Warehouse { public void Reserve() {} } \
-         }",
+        include_str!("fixtures/TestSubjects/src/CallThroughLocalVariable.cs"),
     )]);
     let index = DeclarationIndex::build(&project);
     let resolved = resolve_project(project, &index);
@@ -147,14 +133,7 @@ fn resolves_a_call_routed_through_a_local_variable() {
 fn a_local_variable_shadows_a_field_of_the_same_name() {
     let project = build_project(&[(
         "src/Order.cs",
-        "namespace Demo { \
-             public class Order { \
-                 private Warehouse warehouse; \
-                 public void Ship() { Depot warehouse = new Depot(); warehouse.Reserve(); } \
-             } \
-             public class Warehouse { public void Reserve() {} } \
-             public class Depot { public void Reserve() {} } \
-         }",
+        include_str!("fixtures/TestSubjects/src/LocalShadowsField.cs"),
     )]);
     let index = DeclarationIndex::build(&project);
     let resolved = resolve_project(project, &index);
@@ -186,8 +165,7 @@ fn a_local_variable_shadows_a_field_of_the_same_name() {
 fn resolution_does_not_change_entity_ids() {
     let project = build_project(&[(
         "src/Order.cs",
-        "namespace Demo { public class Order {} \
-             public class OrderFactory { public void Create() { new Order(); } } }",
+        include_str!("fixtures/TestSubjects/src/ExactTypeReference.cs"),
     )]);
     let type_ids_before: Vec<_> = project.types.iter().map(|item| item.id.clone()).collect();
     let method_ids_before: Vec<_> = project.methods.iter().map(|item| item.id.clone()).collect();

@@ -10,9 +10,9 @@ fn source(contents: &str) -> SourceFile {
 
 #[test]
 fn extracts_namespace_and_type_declarations() {
-    let source = source(
-        "namespace Demo.Services { public class OrderService {} internal interface IOrders {} }",
-    );
+    let source = source(include_str!(
+        "fixtures/TestSubjects/src/NamespaceAndTypes.cs"
+    ));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);
@@ -32,7 +32,7 @@ fn extracts_namespace_and_type_declarations() {
 
 #[test]
 fn reports_malformed_csharp_without_panicking() {
-    let source = source("public class {");
+    let source = source(include_str!("fixtures/TestSubjects/src/MalformedClass.cs"));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
 
@@ -41,7 +41,9 @@ fn reports_malformed_csharp_without_panicking() {
 
 #[test]
 fn applies_a_file_scoped_namespace_to_following_types() {
-    let source = source("namespace Demo.Models; public record Order;");
+    let source = source(include_str!(
+        "fixtures/TestSubjects/src/FileScopedNamespace.cs"
+    ));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);
@@ -53,14 +55,9 @@ fn applies_a_file_scoped_namespace_to_following_types() {
 
 #[test]
 fn extracts_fields_properties_constructor_and_methods() {
-    let source = source(
-        "namespace Demo { public class Order { \
-             private int total; \
-             public string Status { get; set; } \
-             public Order() {} \
-             public void Ship() {} \
-         } }",
-    );
+    let source = source(include_str!(
+        "fixtures/TestSubjects/src/MembersDeclaration.cs"
+    ));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);
@@ -87,12 +84,7 @@ fn extracts_fields_properties_constructor_and_methods() {
 
 #[test]
 fn records_a_method_call_to_another_method_as_unresolved() {
-    let source = source(
-        "namespace Demo { public class Order { \
-             public void Process() { this.Validate(); } \
-             public void Validate() {} \
-         } }",
-    );
+    let source = source(include_str!("fixtures/TestSubjects/src/MethodCall.cs"));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);
@@ -113,11 +105,7 @@ fn records_a_method_call_to_another_method_as_unresolved() {
 
 #[test]
 fn records_an_object_creation_as_an_instantiation() {
-    let source = source(
-        "namespace Demo { public class OrderFactory { \
-             public void Create() { new Order(); } \
-         } }",
-    );
+    let source = source(include_str!("fixtures/TestSubjects/src/ObjectCreation.cs"));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);
@@ -136,11 +124,7 @@ fn records_an_object_creation_as_an_instantiation() {
 
 #[test]
 fn records_a_field_access_inside_a_method_body() {
-    let source = source(
-        "namespace Demo { public class Order { \
-             public void Process() { var value = this.Total; } \
-         } }",
-    );
+    let source = source(include_str!("fixtures/TestSubjects/src/FieldAccess.cs"));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);
@@ -163,11 +147,9 @@ fn records_a_field_access_inside_a_method_body() {
 
 #[test]
 fn records_a_local_variable_declaration_with_its_declared_type() {
-    let source = source(
-        "namespace Demo { public class Order { \
-             public void Ship() { Warehouse w = new Warehouse(); w.Reserve(); } \
-         } }",
-    );
+    let source = source(include_str!(
+        "fixtures/TestSubjects/src/LocalVariableDeclaration.cs"
+    ));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);
@@ -192,16 +174,9 @@ fn records_a_local_variable_declaration_with_its_declared_type() {
 
 #[test]
 fn records_receiver_chain_depth_for_calls_and_field_accesses() {
-    let source = source(
-        "namespace Demo { public class Order { \
-             public void Ship() { \
-                 this.Validate(); \
-                 warehouse.Reserve(); \
-                 a.b.c.Foo(); \
-                 var x = a.b.c.Field; \
-             } \
-         } }",
-    );
+    let source = source(include_str!(
+        "fixtures/TestSubjects/src/ReceiverChainDepth.cs"
+    ));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);
@@ -236,7 +211,9 @@ fn extracts_base_class_and_interface_list_entries_as_unresolved_types() {
     // The base/interface split is deferred to Milestone 4: syntax alone
     // cannot tell a base class from an implemented interface, only their
     // resolved TypeKind can. See `parse_base_list`.
-    let source = source("class Order : BaseOrder, IOrder, ISellable {}");
+    let source = source(include_str!(
+        "fixtures/TestSubjects/src/BaseAndInterfaceList.cs"
+    ));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);
@@ -255,12 +232,7 @@ fn extracts_base_class_and_interface_list_entries_as_unresolved_types() {
 
 #[test]
 fn reports_a_malformed_member_without_panicking() {
-    let source = source(
-        "namespace Demo { public class Order { \
-             private int @#$; \
-             public void Ship() {} \
-         } }",
-    );
+    let source = source(include_str!("fixtures/TestSubjects/src/MalformedField.cs"));
     let mut adapter = CSharpAdapter::new();
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);
