@@ -459,6 +459,61 @@ for the real, tested behavior.
 
 ---
 
+## 11. A real worked example: a whole messy project at once
+
+Every example above runs against a small fixture with one deliberate
+finding. `sdp_lab_tools/code-smells-demo/` is a different kind of example:
+a real, buildable C# console app (`dotnet build`/`dotnet run` both work)
+written to contain all 12 code smells from a lecture, wired together like
+an actual small codebase instead of isolated snippets. Its own
+`REFACTORING_GUIDE.md` explains each smell, where it lives, and how to fix
+it — this section just shows what SCENT itself reports against it:
+
+```text
+> scent analyze sdp_lab_tools\code-smells-demo --format table
+```
+
+```text
+Project: sdp_lab_tools/code-smells-demo
+
+FINDINGS (15)
+  SEVERITY   RULE                     CONF %   ENTITY
+  Medium     Duplicated Code          57       a25b9c4b...
+  Medium     Duplicated Code          57       dba4181d...
+  High       Feature Envy             67       0fdc79eb...
+  High       Feature Envy             67       d99f5915...
+  High       Feature Envy             67       05ae973e...
+  High       Feature Envy             67       d02c711c...
+  Medium     Inappropriate Intimacy   64       2dc6f7a3...<->32daca12...
+  Medium     Long Method              51       05ae973e...
+  Medium     Long Parameter List      62       e95d2b30...
+  Medium     Primitive Obsession      57       927d8c31...
+  Medium     Primitive Obsession      57       8f54b659...
+  High       Primitive Obsession      73       e95d2b30...
+  Medium     Refused Bequest          50       94d894ff...
+  Medium     Speculative Generality   50       13a17174...
+  Medium     Speculative Generality   50       3a090954...
+
+PRINCIPLE RISKS (15)
+  RISK     PRINCIPLE      CONF %   EXPLANATION
+  ...      Srp / Lsp / Dry / Kiss / Yagni / Dip / Isp / LawOfDemeter
+```
+
+(Entity IDs are truncated above for readability — the real output prints
+the full SHA-256 hash, see [docs/JSON_OUTPUT_REFERENCE.md](JSON_OUTPUT_REFERENCE.md).)
+
+SCENT catches 7 of the 12 smells under their own name: Duplicated Code,
+Feature Envy, Inappropriate Intimacy, Long Method, Long Parameter List,
+Primitive Obsession, and Speculative Generality. It has no dedicated rule
+(yet) for Large Class/God Class, Divergent Change, Shotgun Surgery, Switch
+Statements, or Data Clumps — those 5 are genuinely present in the code and
+documented in the demo's refactoring guide, just not flagged by SCENT
+under those exact names. This is useful to know honestly rather than
+implying full coverage: it's a real gap in the current ruleset, not a bug
+in the demo project.
+
+---
+
 ## Where to go next
 
 - [docs/JSON_OUTPUT_REFERENCE.md](JSON_OUTPUT_REFERENCE.md) — what every
