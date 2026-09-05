@@ -6,7 +6,9 @@
 2. Read the matching section in `../docs/implementation_plan.md`.
 3. Identify whether the change is a semantic fact, derived metric, evidence
    rule, report surface, or developer UX concern. Put it in that layer only.
-4. Add a focused fixture or test before declaring the change complete.
+4. Add a focused fixture or test before declaring the change complete —
+   every test reads its C# source from a real `.cs` file (see "Test C#
+   fixtures" below), never an inline Rust string literal.
 
 ## Development workflow
 
@@ -21,9 +23,27 @@ cargo test --workspace
 Clippy warnings are errors in CI. Fix their cause; do not disable a lint merely
 to pass a gate.
 
+## Test C# fixtures
+
+Every test's C# source lives in a real `.cs` file under that crate's
+`tests/fixtures/TestSubjects/src/`, alongside a real (if minimal)
+`TestSubjects.csproj` — a genuine small project on disk, not a bag of
+inline Rust string literals. A test reads its file with
+`include_str!("fixtures/TestSubjects/src/Scenario.cs")` (a path relative to
+the test's own `.rs` file, resolved at compile time — never a runtime
+`fs::read_to_string`). Name the file for the scenario it demonstrates
+(`LongMethod.cs`, `FeatureEnvyForeignMembers.cs`), and give one file to one
+test unless several tests genuinely share the same input project. Each
+crate's `TestSubjects` project is self-contained to that crate; do not
+reach into another crate's fixtures. A test that needs a *procedurally*
+large input (e.g. a class with 40 methods to trigger Large Class) still
+gets a real, fully-written-out `.cs` file — write it once, don't generate it
+in the test body.
+
 ## Adding C# syntax support
 
-1. Add a minimal C# snippet to `crates/scent-parser/tests/` or a named fixture.
+1. Add a real `.cs` fixture under `tests/fixtures/TestSubjects/src/` (see
+   "Test C# fixtures" above).
 2. Parse it through `CSharpAdapter`.
 3. Extract only source facts into the IR or an explicit intermediate fact.
 4. Preserve malformed syntax as a `Diagnostic`, rather than crashing or
