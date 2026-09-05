@@ -135,6 +135,28 @@ rule (§8 below).
 this repository or on a completely different drive/directory — SCENT only
 reads the files under it, it never assumes it's analyzing itself.
 
+### Typo'd a command name? scent suggests the closest match
+
+```text
+> scent anlyze crates\scent-core\tests\fixtures\sample-project
+```
+
+```text
+scent: unrecognized command 'anlyze'
+       did you mean 'analyze'?
+usage:
+  scent analyze <path> [--format human|json|sarif|table]
+  scent rules
+  scent gate <path> [--max-critical N] [--max-high N] [--baseline FILE]
+  scent --help                (show full help)
+  scent analyze --help        (show analyze's flags)
+```
+
+This is a simple edit-distance check against the known commands
+(`analyze`, `rules`, `gate`, `--help`) — it only offers a suggestion
+within a small distance, so an unrelated word like `scent xyz123` gets
+just the usage text, no misleading guess.
+
 ---
 
 ## 3. `scent analyze` — human summary (default)
@@ -527,4 +549,7 @@ in the demo project.
 - [docs/architecture.md](architecture.md) — crate boundaries and the
   facts/metrics/findings separation this whole design rests on.
 - [../completions/README.md](../completions/README.md) — bash/PowerShell
-  tab-completion for `scent`'s command and flag names.
+  tab-completion for `scent`'s command and flag names. Both scripts print
+  a one-line confirmation once enabled (registration itself is silent, so
+  without it there'd be no sign anything happened), and the PowerShell
+  script works whether or not you dot-source it — see that file for why.
