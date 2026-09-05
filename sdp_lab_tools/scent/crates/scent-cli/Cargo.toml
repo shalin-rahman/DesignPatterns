@@ -9,7 +9,11 @@ name = "scent"
 path = "src/main.rs"
 
 [dependencies]
+scent-config = { path = "../scent-config" }
 scent-core = { path = "../scent-core" }
+scent-metrics = { path = "../scent-metrics" }
+scent-report = { path = "../scent-report" }
+scent-rules = { path = "../scent-rules" }
 
 [lints]
 workspace = true

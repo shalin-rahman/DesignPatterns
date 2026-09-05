@@ -1,0 +1,4 @@
+[rules.LONG_METHOD.thresholds]
+loc = 1
+cyclomatic_complexity = 1
+nesting_depth = 1

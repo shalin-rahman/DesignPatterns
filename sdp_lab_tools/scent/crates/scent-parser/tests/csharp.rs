@@ -162,6 +162,76 @@ fn records_a_field_access_inside_a_method_body() {
 }
 
 #[test]
+fn records_a_local_variable_declaration_with_its_declared_type() {
+    let source = source(
+        "namespace Demo { public class Order { \
+             public void Ship() { Warehouse w = new Warehouse(); w.Reserve(); } \
+         } }",
+    );
+    let mut adapter = CSharpAdapter::new();
+    let parsed = adapter.parse(&source);
+    let extracted = extract_file(&source, &parsed.tree);
+
+    let ship = &extracted.methods[0];
+    assert_eq!(ship.local_variables.len(), 1);
+    assert_eq!(ship.local_variables[0].name, "w");
+    match &ship.local_variables[0].type_reference {
+        scent_domain::Resolution::Unresolved(reference) => {
+            assert_eq!(reference.spelling, "Warehouse");
+        }
+        scent_domain::Resolution::Resolved(_) => {
+            panic!("a local's declared type is not resolved at extraction time")
+        }
+    }
+    // The initializer (`new Warehouse()`) and the follow-up call
+    // (`w.Reserve()`) are still recorded as ordinary facts, not swallowed by
+    // local-variable extraction.
+    assert_eq!(ship.instantiations.len(), 1);
+    assert_eq!(ship.calls.len(), 1);
+}
+
+#[test]
+fn records_receiver_chain_depth_for_calls_and_field_accesses() {
+    let source = source(
+        "namespace Demo { public class Order { \
+             public void Ship() { \
+                 this.Validate(); \
+                 warehouse.Reserve(); \
+                 a.b.c.Foo(); \
+                 var x = a.b.c.Field; \
+             } \
+         } }",
+    );
+    let mut adapter = CSharpAdapter::new();
+    let parsed = adapter.parse(&source);
+    let extracted = extract_file(&source, &parsed.tree);
+
+    let ship = &extracted.methods[0];
+    let call_depth = |name: &str| {
+        ship.calls
+            .iter()
+            .find(|call| match &call.target {
+                scent_domain::Resolution::Unresolved(reference) => reference.spelling == name,
+                scent_domain::Resolution::Resolved(_) => false,
+            })
+            .map(|call| call.receiver_chain_depth)
+    };
+    assert_eq!(call_depth("Validate"), Some(0));
+    assert_eq!(call_depth("Reserve"), Some(1));
+    assert_eq!(call_depth("Foo"), Some(3));
+    let field_depth = |name: &str| {
+        ship.field_accesses
+            .iter()
+            .find(|access| match &access.target {
+                scent_domain::Resolution::Unresolved(reference) => reference.spelling == name,
+                scent_domain::Resolution::Resolved(_) => false,
+            })
+            .map(|access| access.receiver_chain_depth)
+    };
+    assert_eq!(field_depth("Field"), Some(3));
+}
+
+#[test]
 fn extracts_base_class_and_interface_list_entries_as_unresolved_types() {
     // The base/interface split is deferred to Milestone 4: syntax alone
     // cannot tell a base class from an implemented interface, only their

@@ -1,0 +1,12 @@
+[package]
+name = "scent-report"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+scent-domain = { path = "../scent-domain" }
+scent-rules = { path = "../scent-rules" }
+
+[lints]
+workspace = true

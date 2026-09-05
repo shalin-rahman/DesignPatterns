@@ -37,3 +37,20 @@ pub enum RiskLevel {
     Medium,
     High,
 }
+
+/// The design principles the Principle Risk Engine assesses
+/// (`docs/prompt.md` §25). Not every variant has a rule feeding it yet —
+/// see `scent_rules::principles` for which ones do, and why the rest are
+/// deferred rather than fabricated.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub enum Principle {
+    Srp,
+    Ocp,
+    Lsp,
+    Isp,
+    Dip,
+    Dry,
+    Kiss,
+    Yagni,
+    LawOfDemeter,
+}

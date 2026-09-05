@@ -157,6 +157,18 @@ and its `TypeKind` is known, a resolved `Class`/`Record` in the first position
 moves to `base_types`; everything else (interfaces, structs/interfaces which
 cannot have a base class) stays in `interface_types`.
 
+Delivered scope: `csharp/index.rs` (`DeclarationIndex`) and `csharp/resolve.rs`
+(`resolve_project`). Method and member-access resolution follows a
+`CallReceiver` fact captured at extraction time: `this`/bare receivers
+resolve against the enclosing type; a bare-identifier receiver (`w.Foo()`)
+resolves through the declared type of a same-named local variable,
+parameter, or field of the enclosing method (checked in that shadowing
+order — a local variable's own declared `type`, extracted from its
+`local_declaration_statement`, closing what was originally a Milestone-4
+recall gap: `foo.Bar()` through a local variable is now resolved, not
+deferred). Anything more complex (a chain, a cast, `base`) stays
+`Unresolved` with a specific reason instead of a generic placeholder.
+
 ### Milestone 5 — Suppressions, CLI, and Phase-1 report
 
 `scent-core` orchestrates discovery → parse → extract → index → resolve → IR.
@@ -215,6 +227,65 @@ Implement rules in this dependency order:
 Each rule gets evidence-focused positive, negative, and suppression fixtures.
 Git history is required only for the two history rules and uses entity-resolved
 changes rather than line counts.
+
+Delivered scope: all 11 Refactoring.Guru rules (1-3 above) are implemented,
+including Switch Statements, added last via a new per-switch `SwitchShape`
+signal (`scent-parser::csharp::switch_shape`: case count, the densest case's
+branch complexity, distinct constructed types across cases). The rule itself
+reports only the smell; naming a candidate pattern (Strategy/State/Factory
+Method) is reserved for the Pattern Advisor (item 5), kept independent per
+`prompt.md` §29.
+
+Git-backed rules (item 4) are also delivered: a new `scent-git` crate shells
+out to the `git` CLI (`log`, `show --unified=0`) rather than adding a
+`git2`/libgit2 dependency, since only commit metadata and line-range diffs
+are needed, not full repository object access — consistent with this
+workspace's existing minimal-dependency posture. `log_commits` parses
+`git log --name-only`; `resolve_changes` maps each new-file diff-hunk line
+range onto the *current* checkout's type/method `SourceLocation`s (a pure
+deletion has nothing left in the current tree to attribute it to, so it
+produces no `EntityChange` rather than a guess); `CoChangeGraph` aggregates
+these into per-pair commit counts, commit IDs, and a time window.
+`DivergentChangeRule`/`ShotgunSurgeryRule` read this through a new
+`AnalysisContext::history: Option<&GitHistory>` field and simply produce no
+findings when it is `None` (no repository, or `git` unavailable) — verified
+against a real, disposable Git repository in `scent-git/tests/history.rs`,
+not mocked `git` output.
+
+The principle/pattern/refactoring advisors (item 5) are delivered too, each
+scoped to what this codebase actually computes rather than the spec's full
+breadth:
+
+- **Principle Risk Engine** (`scent-rules::principles`): all 9 principles in
+  `prompt.md` §25 are assessed. SRP (Large Class/Feature Envy), LSP (Refused
+  Bequest), DRY (Duplicated Code/Data Clumps), KISS (Long Method/Large
+  Class/Switch Statements), YAGNI (Speculative Generality), and OCP (Switch
+  Statements — a type-discriminating switch must be modified, not extended,
+  to add a case) each aggregate an existing `Finding`. DIP, ISP, and Law of
+  Demeter have no natural single-`Finding` shape, so they read
+  `AnalysisContext` directly: DIP compares concrete-vs-interface targets
+  across a type's `Creates`/`AcceptsParameter`/`Returns`/`UsesType` edges;
+  ISP reuses `RefusedBequest`'s "looks trivially unimplemented" check
+  against `Implements` edges instead of `Inherits`; Law of Demeter reads a
+  new syntactic fact, `receiver_chain_depth` on `MethodCall`/`FieldAccess`
+  (`scent-ir::model`, computed at extraction time by counting nested
+  `member_access_expression` hops), flagging chains of depth 2+. Every
+  principle uses the spec's hedged wording ("High SRP risk", never "SRP
+  violated").
+- **Pattern Advisor** (`scent-rules::patterns`): reads `SwitchShape` facts
+  independently of the Switch Statements finding, per §29's "pattern
+  recommendations must be independent of smell detection." Only Factory
+  Method (backed by `distinct_created_types >= 2`) or the explicitly-valid
+  `"Do Nothing"` are offered; Strategy/State need a behavioral-state signal
+  not yet computed, so they are not guessed.
+- **Refactoring Advisor** (`scent-rules::refactoring`): a static
+  `rule_id -> Refactoring` lookup using only the 8 refactorings §30 names,
+  covering all 13 currently-registered rules — a test fails if a future rule
+  ships without an entry.
+
+All three are wired into `AnalysisReport` (`scent-core`), the JSON report,
+and the CLI's human summary; verified against a real analyzed fixture (a
+deliberately oversized class), not just unit tests.
 
 ### Milestone 9 — Product surfaces and scale
 

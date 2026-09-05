@@ -1,10 +1,16 @@
 [workspace]
 members = [
     "crates/scent-cli",
+    "crates/scent-config",
     "crates/scent-core",
     "crates/scent-domain",
+    "crates/scent-git",
+    "crates/scent-graph",
     "crates/scent-ir",
+    "crates/scent-metrics",
     "crates/scent-parser",
+    "crates/scent-report",
+    "crates/scent-rules",
 ]
 resolver = "2"
 

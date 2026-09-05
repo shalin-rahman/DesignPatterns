@@ -43,12 +43,27 @@ must not select a “most likely” overload, external type, or member.
 
 ## Adding metrics or rules
 
-Metrics belong in the future `scent-metrics` crate and rules in
-`scent-rules`. Do not put either in `scent-ir` or `scent-parser`.
+Metrics belong in `scent-metrics` and rules in `scent-rules`. Do not put
+either in `scent-ir` or `scent-parser`.
 
-Rules consume read-only facts, metrics, graph data, configuration, and
+Rules consume read-only facts, metrics, graph data, git history
+(`AnalysisContext::history`, `None` when unavailable), configuration, and
 suppressions. A rule emits evidence-backed findings; it does not edit source,
-write files, or alter the IR.
+write files, or alter the IR. See `docs/LEARNING_GUIDE.md` §7 for the
+step-by-step "add a rule" / "add a metric" walkthrough.
+
+## Updating the golden JSON fixture
+
+`scent-core/tests/golden.rs` compares the sample-project's JSON report
+against a checked-in file (`fixtures/sample-project/expected_output.json`).
+After an intentional change to the report's shape or content, regenerate it:
+
+```powershell
+$env:UPDATE_GOLDEN=1; cargo test -p scent-core --test golden; Remove-Item Env:\UPDATE_GOLDEN
+```
+
+Review the diff before committing — a passing regeneration only proves the
+file now matches current output, not that the change was correct.
 
 ## Documentation expectations
 

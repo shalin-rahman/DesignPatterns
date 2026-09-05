@@ -172,16 +172,33 @@ checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 name = "scent-cli"
 version = "0.1.0"
 dependencies = [
+ "scent-config",
  "scent-core",
+ "scent-metrics",
+ "scent-report",
+ "scent-rules",
+]
+
+[[package]]
+name = "scent-config"
+version = "0.1.0"
+dependencies = [
+ "scent-domain",
 ]
 
 [[package]]
 name = "scent-core"
 version = "0.1.0"
 dependencies = [
+ "scent-config",
  "scent-domain",
+ "scent-git",
+ "scent-graph",
  "scent-ir",
+ "scent-metrics",
  "scent-parser",
+ "scent-report",
+ "scent-rules",
 ]
 
 [[package]]
@@ -192,10 +209,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "scent-git"
+version = "0.1.0"
+dependencies = [
+ "scent-domain",
+ "scent-graph",
+ "scent-ir",
+ "scent-parser",
+]
+
+[[package]]
+name = "scent-graph"
+version = "0.1.0"
+dependencies = [
+ "scent-domain",
+ "scent-ir",
+ "scent-parser",
+]
+
+[[package]]
 name = "scent-ir"
 version = "0.1.0"
 dependencies = [
  "scent-domain",
+]
+
+[[package]]
+name = "scent-metrics"
+version = "0.1.0"
+dependencies = [
+ "scent-domain",
+ "scent-graph",
+ "scent-ir",
+ "scent-parser",
 ]
 
 [[package]]
@@ -206,6 +252,27 @@ dependencies = [
  "scent-ir",
  "tree-sitter",
  "tree-sitter-c-sharp",
+]
+
+[[package]]
+name = "scent-report"
+version = "0.1.0"
+dependencies = [
+ "scent-domain",
+ "scent-rules",
+]
+
+[[package]]
+name = "scent-rules"
+version = "0.1.0"
+dependencies = [
+ "scent-config",
+ "scent-domain",
+ "scent-git",
+ "scent-graph",
+ "scent-ir",
+ "scent-metrics",
+ "scent-parser",
 ]
 
 [[package]]

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($env:PATH += \";$env:USERPROFILE\\\\.cargo\\\\bin\"; cd sdp_lab_tools\\\\scent; cargo build --workspace 2>&1 | Select-Object -Last 200)",
+      "PowerShell($env:PATH += \";$env:USERPROFILE\\\\.cargo\\\\bin\"; cargo clippy --workspace --all-targets --all-features -- -D warnings 2>&1 | Select-Object -Last 250)",
+      "PowerShell($env:PATH += \";$env:USERPROFILE\\\\.cargo\\\\bin\"; cd sdp_lab_tools\\\\scent; cargo build -p scent-core --tests 2>&1 | Select-Object -Last 100)",
+      "PowerShell($env:PATH += \";$env:USERPROFILE\\\\.cargo\\\\bin\"; cargo build --workspace 2>&1 | Select-Object -Last 100)",
+      "PowerShell($env:PATH += \";$env:USERPROFILE\\\\.cargo\\\\bin\"; cargo run -q -p scent-cli -- analyze \"crates\\\\scent-core\\\\tests\\\\fixtures\\\\config-project\" 2>$null)",
+      "PowerShell($env:PATH += \";$env:USERPROFILE\\\\.cargo\\\\bin\"; cargo run -q -p scent-cli -- analyze \"crates\\\\scent-core\\\\tests\\\\fixtures\\\\config-project\" --format json 2>$null)",
+      "PowerShell($env:PATH += \";$env:USERPROFILE\\\\.cargo\\\\bin\"; cargo run -q -p scent-cli -- analyze \"crates\\\\scent-core\\\\tests\\\\fixtures\\\\config-project\" --format sarif 2>$null)"
+    ]
+  }
+}

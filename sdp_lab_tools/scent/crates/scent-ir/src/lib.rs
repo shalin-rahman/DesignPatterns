@@ -4,8 +4,9 @@ pub mod model;
 pub mod validate;
 
 pub use model::{
-    FieldAccess, FieldIR, FileIR, Instantiation, MemberTarget, MethodCall, MethodIR, NamespaceIR,
-    ParameterIR, ProjectIR, PropertyIR, TypeIR, TypeKind, TypeReference,
+    CallReceiver, FieldAccess, FieldIR, FileIR, Instantiation, LocalVariable, MemberTarget,
+    MethodCall, MethodIR, NamespaceIR, ParameterIR, ProjectIR, PropertyIR, TypeIR, TypeKind,
+    TypeReference,
 };
 pub use validate::{ProjectIrValidationError, ValidateProjectIr};
 

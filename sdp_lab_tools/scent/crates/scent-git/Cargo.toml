@@ -1,0 +1,16 @@
+[package]
+name = "scent-git"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+scent-domain = { path = "../scent-domain" }
+scent-graph = { path = "../scent-graph" }
+scent-ir = { path = "../scent-ir" }
+
+[dev-dependencies]
+scent-parser = { path = "../scent-parser" }
+
+[lints]
+workspace = true

@@ -5,12 +5,15 @@ use scent_domain::{
     SourcePosition, SourceRange, TypeId, UnresolvedReference, UnresolvedReferenceKind, Visibility,
 };
 use scent_ir::{
-    FieldAccess, FieldIR, FileIR, Instantiation, MethodCall, MethodIR, NamespaceIR, ParameterIR,
-    PropertyIR, TypeIR, TypeKind, TypeReference,
+    CallReceiver, FieldAccess, FieldIR, FileIR, Instantiation, LocalVariable, MethodCall, MethodIR,
+    NamespaceIR, ParameterIR, PropertyIR, TypeIR, TypeKind, TypeReference,
 };
 use tree_sitter::{Node, Tree};
 
-use super::SourceFile;
+use super::{
+    clone_signature, complexity, switch_shape, CloneSignature, ComplexitySignals, SourceFile,
+    SwitchShape,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExtractedFile {
@@ -20,6 +23,17 @@ pub struct ExtractedFile {
     pub methods: Vec<MethodIR>,
     pub fields: Vec<FieldIR>,
     pub properties: Vec<PropertyIR>,
+    /// Decision-point/nesting signals per method, parallel to `methods` but
+    /// kept out of `MethodIR` itself since a fact must never carry a
+    /// pre-computed metric.
+    pub method_complexity: Vec<(MethodId, ComplexitySignals)>,
+    /// Structural clone signatures per method, parallel to `methods` for the
+    /// same reason: a fact must never carry a pre-computed metric.
+    pub method_clone_signatures: Vec<(MethodId, CloneSignature)>,
+    /// Per-switch shape signals for every `switch_statement` found in a
+    /// method body, parallel to `methods` for the same reason as the two
+    /// fields above.
+    pub method_switches: Vec<(MethodId, Vec<SwitchShape>)>,
 }
 
 #[must_use]
@@ -37,6 +51,9 @@ pub fn extract_file(source: &SourceFile, tree: &Tree) -> ExtractedFile {
         methods: vec![],
         fields: vec![],
         properties: vec![],
+        method_complexity: vec![],
+        method_clone_signatures: vec![],
+        method_switches: vec![],
     };
     let default_namespace = file_scoped_namespace(tree.root_node(), source);
     visit_node(
@@ -301,16 +318,13 @@ fn add_field(
     let Some(variable_declaration) = child_of_kind(field_decl, "variable_declaration") else {
         return;
     };
-    let Some(type_node) = variable_declaration.child_by_field_name("type") else {
+    let Some((type_reference, declarators)) =
+        parse_variable_declaration(variable_declaration, source)
+    else {
         return;
     };
-    let type_reference = unresolved_type(type_node, source);
     let field_visibility = visibility(field_decl, source);
-    let mut cursor = variable_declaration.walk();
-    for declarator in variable_declaration
-        .named_children(&mut cursor)
-        .filter(|child| child.kind() == "variable_declarator")
-    {
+    for declarator in declarators {
         let Some(name) = declarator
             .child_by_field_name("name")
             .and_then(|item| text(item, source))
@@ -392,7 +406,7 @@ fn add_method(
     let return_type = node
         .child_by_field_name("returns")
         .map(|returns_node| unresolved_type(returns_node, source));
-    let method = build_method_ir(
+    let (method, signals, clone_signature, switches) = build_method_ir(
         node,
         &name,
         parameters_node,
@@ -402,6 +416,15 @@ fn add_method(
         namespace,
         owner,
     );
+    extracted
+        .method_complexity
+        .push((method.id.clone(), signals));
+    extracted
+        .method_clone_signatures
+        .push((method.id.clone(), clone_signature));
+    extracted
+        .method_switches
+        .push((method.id.clone(), switches));
     extracted.methods.push(method);
 }
 
@@ -421,7 +444,7 @@ fn add_constructor(
     let Some(parameters_node) = node.child_by_field_name("parameters") else {
         return;
     };
-    let method = build_method_ir(
+    let (method, signals, clone_signature, switches) = build_method_ir(
         node,
         &name,
         parameters_node,
@@ -431,6 +454,15 @@ fn add_constructor(
         namespace,
         owner,
     );
+    extracted
+        .method_complexity
+        .push((method.id.clone(), signals));
+    extracted
+        .method_clone_signatures
+        .push((method.id.clone(), clone_signature));
+    extracted
+        .method_switches
+        .push((method.id.clone(), switches));
     extracted.methods.push(method);
 }
 
@@ -444,7 +476,12 @@ fn build_method_ir(
     source: &SourceFile,
     namespace: Option<&str>,
     owner: &Owner<'_>,
-) -> MethodIR {
+) -> (
+    MethodIR,
+    ComplexitySignals,
+    CloneSignature,
+    Vec<SwitchShape>,
+) {
     let parameters = parse_parameters(parameters_node, source);
     // The raw parameter-list source text (rather than resolved types, which
     // don't exist yet) is enough to give overloads distinct, stable
@@ -457,10 +494,17 @@ fn build_method_ir(
         owner.qualified_name,
     );
     let mut facts = MethodFacts::default();
+    let mut signals = ComplexitySignals::default();
+    let mut clone_signature = CloneSignature {
+        statement_count: 0,
+        hash: String::new(),
+    };
     if let Some(body) = decl_node.child_by_field_name("body") {
         collect_method_facts(body, source, &mut facts);
+        signals = complexity::measure(body);
+        clone_signature = clone_signature::measure(body, source);
     }
-    MethodIR {
+    let method = MethodIR {
         id: MethodId::from_identity(&identity),
         owner_type: owner.type_id.clone(),
         name: name.into(),
@@ -472,7 +516,27 @@ fn build_method_ir(
         field_accesses: facts.field_accesses,
         type_references: facts.type_references,
         instantiations: facts.instantiations,
-    }
+        local_variables: facts.local_variables,
+    };
+    (method, signals, clone_signature, facts.switches)
+}
+
+/// Shared by field extraction and local-variable extraction: both parse a
+/// `variable_declaration` (a `type` field plus one or more
+/// `variable_declarator` children, e.g. `int x, y;`), verified against
+/// `tree-sitter-c-sharp`'s `node-types.json`.
+fn parse_variable_declaration<'a>(
+    variable_declaration: Node<'a>,
+    source: &SourceFile,
+) -> Option<(Resolution<TypeId>, Vec<Node<'a>>)> {
+    let type_node = variable_declaration.child_by_field_name("type")?;
+    let type_reference = unresolved_type(type_node, source);
+    let mut cursor = variable_declaration.walk();
+    let declarators = variable_declaration
+        .named_children(&mut cursor)
+        .filter(|child| child.kind() == "variable_declarator")
+        .collect();
+    Some((type_reference, declarators))
 }
 
 fn parse_parameters(parameter_list: Node<'_>, source: &SourceFile) -> Vec<ParameterIR> {
@@ -513,6 +577,8 @@ struct MethodFacts {
     field_accesses: Vec<FieldAccess>,
     type_references: Vec<TypeReference>,
     instantiations: Vec<Instantiation>,
+    switches: Vec<SwitchShape>,
+    local_variables: Vec<LocalVariable>,
 }
 
 /// Walks a method/constructor body attaching call, creation, and
@@ -540,6 +606,8 @@ fn collect_method_facts(node: Node<'_>, source: &SourceFile, facts: &mut MethodF
                         spelling,
                         location(function_node, &source.path),
                     ),
+                    receiver: receiver_kind(receiver, source),
+                    receiver_chain_depth: chain_depth(receiver),
                     location: location(node, &source.path),
                 });
                 // The receiver of a call (e.g. `this` in `this.Other()`) is
@@ -567,6 +635,7 @@ fn collect_method_facts(node: Node<'_>, source: &SourceFile, facts: &mut MethodF
             }
         }
         "member_access_expression" => {
+            let receiver = node.child_by_field_name("expression");
             if let Some(name_node) = node.child_by_field_name("name") {
                 facts.field_accesses.push(FieldAccess {
                     target: unresolved(
@@ -574,14 +643,93 @@ fn collect_method_facts(node: Node<'_>, source: &SourceFile, facts: &mut MethodF
                         text(name_node, source).unwrap_or_default(),
                         location(name_node, &source.path),
                     ),
+                    receiver: receiver_kind(receiver, source),
+                    receiver_chain_depth: chain_depth(receiver),
                     location: location(node, &source.path),
                 });
             }
-            if let Some(receiver) = node.child_by_field_name("expression") {
+            if let Some(receiver) = receiver {
                 collect_method_facts(receiver, source, facts);
             }
         }
+        "switch_statement" => {
+            facts.switches.push(switch_shape::measure(node, source));
+            collect_children(node, source, facts);
+        }
+        "local_declaration_statement" => {
+            collect_local_declaration(node, source, facts);
+        }
         _ => collect_children(node, source, facts),
+    }
+}
+
+/// A missing receiver (a bare call) or an explicit `this` binds to the
+/// enclosing type by C#'s own rules — not a guess. A bare identifier
+/// (`b.Foo()`) is recorded by name so the resolver can look it up as a
+/// parameter or field in scope. Anything more complex (`a.b`, `base`, a
+/// cast, a nested call) needs a receiver type Phase 1 does not infer.
+fn receiver_kind(receiver: Option<Node<'_>>, source: &SourceFile) -> CallReceiver {
+    match receiver {
+        None => CallReceiver::SelfOrImplicit,
+        Some(node) if node.kind() == "this" => CallReceiver::SelfOrImplicit,
+        Some(node) if node.kind() == "identifier" => {
+            text(node, source).map_or(CallReceiver::Other, CallReceiver::Named)
+        }
+        Some(_) => CallReceiver::Other,
+    }
+}
+
+/// Counts `.` hops in a receiver expression, purely from syntax: `None`
+/// (bare) or `this` is 0 hops; a single identifier (`warehouse`) is 1; a
+/// chain (`a.b`) recurses through nested `member_access_expression`
+/// receivers, adding 1 per link. Anything else (a call, a cast, `base`) is
+/// still exactly 1 hop deep from this expression's own perspective — its
+/// own internal complexity isn't this fact's concern.
+fn chain_depth(receiver: Option<Node<'_>>) -> u32 {
+    match receiver {
+        None => 0,
+        Some(node) if node.kind() == "this" => 0,
+        Some(node) if node.kind() == "member_access_expression" => {
+            1 + chain_depth(node.child_by_field_name("expression"))
+        }
+        Some(_) => 1,
+    }
+}
+
+/// A `local_declaration_statement` (`var w = ...;`, `Warehouse w = ...;`)
+/// records a [`LocalVariable`] fact per declarator from its declared `type`
+/// field — never inferred from the initializer, so a bare `var` stays
+/// `Unresolved` rather than being guessed from the right-hand side. The
+/// initializer expression itself is still walked normally so any call,
+/// creation, or field access inside it is recorded as usual.
+fn collect_local_declaration(node: Node<'_>, source: &SourceFile, facts: &mut MethodFacts) {
+    let Some(variable_declaration) = child_of_kind(node, "variable_declaration") else {
+        return;
+    };
+    let Some((type_reference, declarators)) =
+        parse_variable_declaration(variable_declaration, source)
+    else {
+        return;
+    };
+    for declarator in declarators {
+        let name_node = declarator.child_by_field_name("name");
+        if let Some(name) = name_node.and_then(|item| text(item, source)) {
+            facts.local_variables.push(LocalVariable {
+                name,
+                location: location(declarator, &source.path),
+                type_reference: type_reference.clone(),
+            });
+        }
+        let mut cursor = declarator.walk();
+        for child in declarator.named_children(&mut cursor) {
+            if name_node.is_some_and(|name_node| name_node.id() == child.id()) {
+                continue;
+            }
+            if child.kind() == "bracketed_argument_list" {
+                continue;
+            }
+            collect_method_facts(child, source, facts);
+        }
     }
 }
 

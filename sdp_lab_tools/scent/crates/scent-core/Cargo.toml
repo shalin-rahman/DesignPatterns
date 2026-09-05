@@ -5,9 +5,15 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+scent-config = { path = "../scent-config" }
 scent-domain = { path = "../scent-domain" }
+scent-git = { path = "../scent-git" }
+scent-graph = { path = "../scent-graph" }
 scent-ir = { path = "../scent-ir" }
+scent-metrics = { path = "../scent-metrics" }
 scent-parser = { path = "../scent-parser" }
+scent-report = { path = "../scent-report" }
+scent-rules = { path = "../scent-rules" }
 
 [lints]
 workspace = true
