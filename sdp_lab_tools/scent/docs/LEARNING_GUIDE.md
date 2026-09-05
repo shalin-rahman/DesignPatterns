@@ -143,6 +143,73 @@ means the built-in integer type, or that calling `"Validate"` means the
 strict split — record what the text says now, work out what it *means*
 later — is why the fact model never has to guess.
 
+#### What extraction's output actually looks like: a tree in your head, a flat table on disk
+
+Reading `Order.cs`, you naturally picture a **tree**: the file contains a
+namespace, the namespace contains two classes, each class contains its
+members:
+
+```text
+Order.cs
+└── (namespace) Shop
+    ├── class Order
+    │   ├── field total
+    │   ├── property Status
+    │   └── method Ship
+    │       └── calls → method Validate      (same class)
+    │   └── method Validate
+    └── class OrderFactory
+        └── method Create
+            └── instantiates → class Order
+```
+
+That's a fine mental model, but it is **not** how `extract_file` actually
+stores it. The real return type, `ExtractedFile`
+(`scent-parser/src/csharp/extract.rs`), has no nested containment at
+all — every declaration is a peer entry in its own flat `Vec`, and the
+"tree" only exists virtually, by following an id field from a child back
+to its parent:
+
+```text
+ExtractedFile {
+  namespaces: [ NamespaceIR{ id: N1, name: "Shop" } ],
+
+  types: [ TypeIR{ id: T1, name: "Order",        namespace_id: N1 },
+           TypeIR{ id: T2, name: "OrderFactory",  namespace_id: N1 } ],
+
+  fields:     [ FieldIR{    id: F1, name: "total",  owner_type: T1 } ],
+  properties: [ PropertyIR{ id: P1, name: "Status", owner_type: T1 } ],
+
+  methods: [ MethodIR{ id: M1, name: "Ship",     owner_type: T1,
+                        calls: [ MethodCall{ target: Resolution::Unresolved("Validate"),
+                                              receiver: SelfOrImplicit } ] },
+             MethodIR{ id: M2, name: "Validate", owner_type: T1 },
+             MethodIR{ id: M3, name: "Create",   owner_type: T2,
+                        instantiations: [ Instantiation{ spelling: "Order" } ] } ],
+}
+```
+
+Two things to notice:
+
+- **Membership is proved by id equality, not by position in a nested
+  list.** `methods[0].owner_type == types[0].id` is what says "`Ship`
+  belongs to `Order`" — there's no `types[0].methods` field to look
+  inside. `crates/scent-parser/tests/csharp.rs` asserts exactly this way
+  (`extracted.methods.iter().all(|m| m.owner_type == extracted.types[0].id)`),
+  never by indexing into a child collection.
+- **One level *is* genuinely nested: a method's own body facts.** `calls`,
+  `field_accesses`, `type_references`, `instantiations`, and
+  `local_variables` are real `Vec` fields *inside* `MethodIR` — they
+  describe what that method's body does, not another declaration that
+  needs its own top-level table.
+
+Why store it this way instead of a real tree? It's the same rule from §4
+below: facts, metrics, and findings must stay separable. A flat, id-linked
+table is what lets `scent-graph` build a
+dependency graph and `scent-rules` evaluate a rule against, say, "every
+method in this file" without ever needing to walk a tree structure back
+down from the root — it just filters one flat `Vec` by an id.
+
 ### Stage 4 — Two-pass resolution (`scent-parser::csharp::{index, resolve}`)
 
 **Pass 1** builds lookup tables: "the project has a type named `Order`",
