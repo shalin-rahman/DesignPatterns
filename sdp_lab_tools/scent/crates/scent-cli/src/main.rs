@@ -19,10 +19,49 @@ fn main() -> ExitCode {
         Some("gate") => run_gate(&args.collect::<Vec<_>>()),
         Some(other) => {
             eprintln!("scent: unrecognized command '{other}'");
+            if let Some(suggestion) = closest_command(other) {
+                eprintln!("       did you mean '{suggestion}'?");
+            }
             print_usage();
             ExitCode::FAILURE
         }
     }
+}
+
+const KNOWN_COMMANDS: &[&str] = &["analyze", "rules", "gate", "--help"];
+
+// Suggests the closest known command for a typo, the same idea as
+// git/cargo's "did you mean" — only offered within a small edit distance
+// so an unrelated word doesn't produce a misleading suggestion.
+fn closest_command(input: &str) -> Option<&'static str> {
+    KNOWN_COMMANDS
+        .iter()
+        .map(|&candidate| (candidate, levenshtein(input, candidate)))
+        .filter(|&(_, distance)| distance <= 2)
+        .min_by_key(|&(_, distance)| distance)
+        .map(|(candidate, _)| candidate)
+}
+
+fn levenshtein(a: &str, b: &str) -> usize {
+    let a: Vec<char> = a.chars().collect();
+    let b: Vec<char> = b.chars().collect();
+    let mut row: Vec<usize> = (0..=b.len()).collect();
+
+    for (i, &ca) in a.iter().enumerate() {
+        let mut prev_diagonal = row[0];
+        row[0] = i + 1;
+        for (j, &cb) in b.iter().enumerate() {
+            let temp = row[j + 1];
+            row[j + 1] = if ca == cb {
+                prev_diagonal
+            } else {
+                1 + prev_diagonal.min(row[j]).min(row[j + 1])
+            };
+            prev_diagonal = temp;
+        }
+    }
+
+    row[b.len()]
 }
 
 fn run_analyze(rest: &[String]) -> ExitCode {
