@@ -6,11 +6,13 @@
 # does not suggest file paths (PowerShell's own path completion already
 # handles <path>).
 #
-# Install for this session only:
+# Install for this session only, from the scent/ directory:
 #   . completions/scent.ps1
 #
-# Install permanently: add the line above to your PowerShell profile
-# ($PROFILE).
+# Install permanently: add this to your PowerShell profile ($PROFILE),
+# with the real absolute path to this file (a relative path won't resolve
+# once the profile runs from a different directory):
+#   . C:\absolute\path\to\scent\completions\scent.ps1
 
 Register-ArgumentCompleter -Native -CommandName scent -ScriptBlock {
     param($wordToComplete, $commandAst, $cursorPosition)

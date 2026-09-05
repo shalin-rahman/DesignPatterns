@@ -24,21 +24,32 @@ automatically. So these two files are hand-written and limited:
 
 ## Install
 
-**bash**, for the current session:
+**bash**, for the current session (run from the `scent/` directory):
 
 ```bash
 source completions/scent.bash
 ```
 
-Add that line to `~/.bashrc` to keep it every session.
+To keep it every session, add the same line to `~/.bashrc` — but with the
+real absolute path, since `~/.bashrc` doesn't run from `scent/`:
 
-**PowerShell**, for the current session:
+```bash
+source /absolute/path/to/scent/completions/scent.bash
+```
+
+**PowerShell**, for the current session (run from the `scent/` directory):
 
 ```powershell
 . completions/scent.ps1
 ```
 
-Add that line to your profile (`$PROFILE`) to keep it every session.
+To keep it every session, add the same line to your profile (`$PROFILE`)
+— but with the real absolute path, since the profile doesn't run from
+`scent/`:
+
+```powershell
+. C:\absolute\path\to\scent\completions\scent.ps1
+```
 
 Either script assumes the `scent` binary itself is already on your `PATH`
 (e.g. `cargo install --path crates/scent-cli`, or you're running it with

@@ -6,10 +6,13 @@
 # flags belong to which command, and it never suggests file paths itself
 # (bash's own default filename completion already handles <path>).
 #
-# Install for this shell session only:
+# Install for this shell session only, from the scent/ directory:
 #   source completions/scent.bash
 #
-# Install permanently: add the `source` line above to ~/.bashrc.
+# Install permanently: add this to ~/.bashrc, with the real absolute path
+# to this file (a relative path won't resolve once ~/.bashrc runs from a
+# different directory):
+#   source /absolute/path/to/scent/completions/scent.bash
 
 _scent_completions() {
     local cur prev commands flags
