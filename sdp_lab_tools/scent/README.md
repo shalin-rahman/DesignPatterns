@@ -48,7 +48,9 @@ implementation status (including what's still planned), and
 walkthrough of the whole pipeline plus a Rust (and C# comparison) primer.
 [docs/CLI_WORKFLOW_GUIDE.md](docs/CLI_WORKFLOW_GUIDE.md) shows every command
 with real, captured example output and a step-by-step trace of what each
-pipeline stage does.
+pipeline stage does. [docs/JSON_OUTPUT_REFERENCE.md](docs/JSON_OUTPUT_REFERENCE.md)
+explains, in plain words, what every field in `--format json` means
+(severity vs. risk, confidence, evidence, and so on).
 
 ## Requirements
 
@@ -76,21 +78,42 @@ cargo test --workspace
 ## Analyzing a project
 
 Point it at the root of a C# solution or project (the directory containing
-its `.sln`/`.csproj` files, or any ancestor of them):
+its `.sln`/`.csproj` files, or any ancestor of them). This directory does
+**not** need to be inside this repository — any path on disk works, since
+SCENT only reads C# source text; it never compiles or runs the target
+project:
 
 ```powershell
-cargo run -p scent-cli -- analyze <path> [--format human|json|sarif]
+cargo run -p scent-cli -- --help
+cargo run -p scent-cli -- analyze <path> [--format human|json|sarif|table]
+cargo run -p scent-cli -- analyze --help
 cargo run -p scent-cli -- rules
 cargo run -p scent-cli -- gate <path> [--max-critical N] [--max-high N] [--baseline FILE]
+cargo run -p scent-cli -- gate --help
 ```
 
-`analyze` defaults to a human-readable summary; `--format json` is the full
-deterministic report (facts, metrics, findings, principle risks, pattern
-and refactoring recommendations); `--format sarif` is for CI/IDE tools that
-consume SARIF. `gate` exits non-zero when the findings exceed the
-configured thresholds (or introduce new violations against a baseline),
-for use in a CI pipeline. Progress lines are printed to stderr as each
-pipeline stage runs, so stdout stays a clean, pipeable report.
+| Command | What it does |
+|---|---|
+| `--help` (top level, or after `analyze`/`gate`) | Prints usage and every flag for that command. Exits 0. |
+| `analyze <path>` | Runs the whole pipeline and prints a report. Defaults to `--format human`. |
+| `analyze <path> --format json` | The full deterministic report — every fact, metric, finding, principle risk, and recommendation. See [docs/JSON_OUTPUT_REFERENCE.md](docs/JSON_OUTPUT_REFERENCE.md) for what every field means. |
+| `analyze <path> --format sarif` | [SARIF 2.1.0](https://sarifweb.azurewebsites.net/) output for CI/IDE tools (GitHub code scanning, VS Code's SARIF viewer). |
+| `analyze <path> --format table` | Findings and principle risks as aligned text columns instead of free-form sentences or JSON. |
+| `rules` | Lists every registered rule id and name. |
+| `gate <path>` | Runs the analysis, then passes/fails against a quality gate (`--max-critical`, `--max-high`, or `[quality_gate]` in `smell_detector.toml`). Exits non-zero on failure — the shape a CI step needs. |
+
+Progress lines are printed to stderr as each pipeline stage runs, so stdout
+stays a clean, pipeable report. See
+[docs/CLI_WORKFLOW_GUIDE.md](docs/CLI_WORKFLOW_GUIDE.md) for a real,
+captured run of every command above, and what each pipeline stage does
+internally.
+
+Shell tab-completion (bash and PowerShell) is available under
+[`completions/`](completions/) — see [completions/README.md](completions/README.md)
+to install it. Because SCENT's argument parser is hand-rolled rather than
+built on a framework like `clap`, these scripts complete command and flag
+*names* only; they cannot suggest file paths from inside your shell
+smarter than your shell already does.
 
 ## Repository layout
 
@@ -107,10 +130,16 @@ crates/
 ├── scent-report/    JSON writer, SARIF, baseline, quality gate
 └── scent-rules/     the rule engine, evidence/confidence/severity, and the advisors
 docs/
-├── architecture.md     layer boundaries and data flow
-├── LEARNING_GUIDE.md   plain-language pipeline walkthrough + Rust/C# primer
+├── architecture.md          layer boundaries and data flow
+├── LEARNING_GUIDE.md        plain-language pipeline walkthrough + Rust/C# primer
+├── CLI_WORKFLOW_GUIDE.md    every command, real captured output, pipeline trace
+├── JSON_OUTPUT_REFERENCE.md what every field in --format json means, in plain words
 ├── contributor-guide.md
-└── status.md            implemented vs planned work, updated continuously
+└── status.md                implemented vs planned work, updated continuously
+completions/
+├── scent.bash               bash tab-completion for command/flag names
+├── scent.ps1                PowerShell tab-completion for command/flag names
+└── README.md                how to install either one
 ```
 
 ## Principles

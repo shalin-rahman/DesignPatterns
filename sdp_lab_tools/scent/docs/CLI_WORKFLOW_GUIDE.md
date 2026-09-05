@@ -62,7 +62,73 @@ This is genuinely the same sequence for every command below — `analyze`,
 
 ---
 
-## 2. `scent analyze` — human summary (default)
+## 2. `--help` — every command's own flags
+
+```text
+scent> cargo run -q -p scent-cli -- --help
+```
+
+```text
+scent — static smell/design analysis for C# projects
+
+USAGE:
+  scent <COMMAND> [ARGS]
+
+COMMANDS:
+  analyze <path>   Analyze a C# solution/project directory and report findings
+  rules            List every registered rule id and name
+  gate <path>      Analyze, then pass/fail against a quality gate
+
+<path> can be any directory on disk — inside or outside this repo — that
+contains a .sln, .csproj, or .cs files. scent only reads it; it never runs
+MSBuild or dotnet.
+
+Run 'scent analyze --help' or 'scent gate --help' for a command's own flags.
+See docs/CLI_WORKFLOW_GUIDE.md for real examples of every command.
+```
+
+`scent analyze --help`:
+
+```text
+scent analyze <path> [OPTIONS]
+
+Analyze a C# solution/project directory. <path> can point anywhere on
+disk, including a directory outside this repository.
+
+OPTIONS:
+  --format human   Readable summary with findings, risks, recommendations (default)
+  --format json    Full machine-readable report — see docs/JSON_OUTPUT_REFERENCE.md
+  --format sarif   SARIF output for editors/CI (e.g. GitHub code scanning)
+  --format table   Findings and principle risks as aligned columns
+  -h, --help       Show this message
+```
+
+`scent gate --help`:
+
+```text
+scent gate <path> [OPTIONS]
+
+Analyze <path>, then pass or fail against a quality gate. Exits 0 on
+PASSED, 1 on FAILED — safe to use as a CI step.
+
+OPTIONS:
+  --max-critical N   Fail if more than N Critical findings (default from
+                     smell_detector.toml, else built-in default)
+  --max-high N       Fail if more than N High findings
+  --baseline FILE    Ignore findings already present in this baseline file
+  -h, --help         Show this message
+```
+
+`scent rules` has no flags of its own; it always lists every registered
+rule (§8 below).
+
+`<path>` in every command above works exactly the same whether it's inside
+this repository or on a completely different drive/directory — SCENT only
+reads the files under it, it never assumes it's analyzing itself.
+
+---
+
+## 3. `scent analyze` — human summary (default)
 
 ```text
 scent> cargo run -q -p scent-cli -- analyze crates\scent-core\tests\fixtures\sample-project
@@ -106,7 +172,7 @@ anything — every count past "Metrics" is honestly zero, not hidden.
 ### The same command against a fixture that *does* trigger a finding
 
 `crates/scent-core/tests/fixtures/config-project` has a `smell_detector.toml`
-that lowers `LONG_METHOD`'s thresholds (see §4) so a small method crosses
+that lowers `LONG_METHOD`'s thresholds (see §6) so a small method crosses
 them:
 
 ```text
@@ -155,7 +221,37 @@ fact, not three independent guesses.
 
 ---
 
-## 3. `scent analyze --format json`
+## 4. `scent analyze --format table`
+
+The same findings and principle risks as the human summary above, but as
+aligned text columns instead of free-form sentences — easier to scan or
+paste somewhere that needs straight columns:
+
+```text
+scent> cargo run -q -p scent-cli -- analyze crates\scent-core\tests\fixtures\config-project --format table
+```
+
+```text
+Project: crates\scent-core\tests\fixtures\config-project
+
+FINDINGS (1)
+  SEVERITY   RULE                     CONF %   ENTITY
+  Critical   Long Method              54       e311e3a6a3055c3647bbfe1abe1a8e45a0ec42f129bcdaa1dc8e8d19dbe70c12
+
+PRINCIPLE RISKS (1)
+  RISK     PRINCIPLE      CONF %   EXPLANATION
+  Medium   Kiss           54       Medium KISS risk: evidence suggests unnecessary complexity relative to what the entity needs to do
+```
+
+This is not JSON — it's plain text, meant for a terminal or a text file.
+If you need the data in a structured form to feed another tool, use
+`--format json` instead (next section) and see
+[docs/JSON_OUTPUT_REFERENCE.md](JSON_OUTPUT_REFERENCE.md) for what each
+field means.
+
+---
+
+## 5. `scent analyze --format json`
 
 The full deterministic report — every fact, metric, finding, principle
 risk, and recommendation, as one JSON object. Two runs over the same input
@@ -207,12 +303,12 @@ command yourself for the untrimmed version, or see
 `crates/scent-core/tests/fixtures/sample-project/expected_output.json` for
 a full, real, checked-in example.) Notice the `evidence` array under the
 finding: `loc = 6` against a *configured* threshold of `1` (not the
-built-in default of `30`) — proof the `smell_detector.toml` override in §4
+built-in default of `30`) — proof the `smell_detector.toml` override in §6
 actually took effect, not just that the file parsed.
 
 ---
 
-## 4. `smell_detector.toml` — real config file, real effect
+## 6. `smell_detector.toml` — real config file, real effect
 
 `crates/scent-core/tests/fixtures/config-project/smell_detector.toml`:
 
@@ -241,7 +337,7 @@ above) just gets every rule at its built-in default — never an error.
 
 ---
 
-## 5. `scent analyze --format sarif`
+## 7. `scent analyze --format sarif`
 
 Same analysis, rendered as [SARIF 2.1.0](https://sarifweb.azurewebsites.net/)
 for CI systems and IDEs that consume it directly (GitHub code scanning, VS
@@ -275,7 +371,7 @@ scent> cargo run -q -p scent-cli -- analyze crates\scent-core\tests\fixtures\con
 
 ---
 
-## 6. `scent rules`
+## 8. `scent rules`
 
 Lists every currently registered rule id and name — useful for scripting
 (e.g. building a `smell_detector.toml` section per rule) or just confirming
@@ -304,7 +400,7 @@ Registered rules
 
 ---
 
-## 7. `scent gate` — CI pass/fail
+## 9. `scent gate` — CI pass/fail
 
 Runs the same analysis, then checks the findings against thresholds
 (`--max-critical`, `--max-high`, or `[quality_gate]` in
@@ -333,7 +429,7 @@ Exit code `1` — this is exactly what a CI pipeline step checks.
 
 ---
 
-## 8. Suppressing a specific finding
+## 10. Suppressing a specific finding
 
 `// scent:disable RULE_ID` / `// scent:enable RULE_ID` around a block of
 source (the sample fixture's own `Order.cs` uses this around `Validate()`):
@@ -356,9 +452,15 @@ for the real, tested behavior.
 
 ## Where to go next
 
-- `docs/LEARNING_GUIDE.md` — the same pipeline traced through one file's
-  facts in detail, plus a Rust (and C#-comparison) primer for the
-  implementation language itself.
-- `docs/status.md` — exactly what's implemented, continuously updated.
-- `docs/architecture.md` — crate boundaries and the facts/metrics/findings
-  separation this whole design rests on.
+- [docs/JSON_OUTPUT_REFERENCE.md](JSON_OUTPUT_REFERENCE.md) — what every
+  field in `--format json` means, in plain words (severity vs. risk,
+  confidence, evidence, and where "project name" actually comes from).
+- [docs/LEARNING_GUIDE.md](LEARNING_GUIDE.md) — the same pipeline traced
+  through one file's facts in detail, plus a Rust (and C#-comparison)
+  primer for the implementation language itself.
+- [docs/status.md](status.md) — exactly what's implemented, continuously
+  updated.
+- [docs/architecture.md](architecture.md) — crate boundaries and the
+  facts/metrics/findings separation this whole design rests on.
+- [../completions/README.md](../completions/README.md) — bash/PowerShell
+  tab-completion for `scent`'s command and flag names.
