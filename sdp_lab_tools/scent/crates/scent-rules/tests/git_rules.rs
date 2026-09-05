@@ -13,17 +13,11 @@ use scent_metrics::build_metric_store;
 use scent_parser::{extract_file, resolve_project, CSharpAdapter, DeclarationIndex, SourceFile};
 use scent_rules::{default_registry, AnalysisContext};
 
-const SOURCE: &str = "class Order { \
-     void Ship() { var x = 1; } \
-     void Cancel() { var y = 1; } \
-     void Validate() { var z = 1; } \
- }";
-
 fn build_project() -> ProjectIR {
     let mut adapter = CSharpAdapter::new();
     let source = SourceFile {
         path: NormalizedPath::parse("src/Order.cs").unwrap(),
-        contents: SOURCE.into(),
+        contents: include_str!("fixtures/TestSubjects/src/ThreeMethodOrder.cs").into(),
     };
     let parsed = adapter.parse(&source);
     let extracted = extract_file(&source, &parsed.tree);

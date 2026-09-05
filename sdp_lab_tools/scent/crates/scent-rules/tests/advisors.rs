@@ -2,8 +2,6 @@
 //! (or, for patterns, `AnalysisContext::switch_shapes`) computed by the
 //! same real pipeline the other rule tests use, not fabricated inputs.
 
-use std::fmt::Write as _;
-
 use scent_domain::{Language, NormalizedPath, Principle, ProjectId, SuppressionMap};
 use scent_graph::build_graph;
 use scent_ir::ProjectIR;
@@ -82,15 +80,8 @@ fn context<'a>(project: &'a ProjectIR, setup: &'a AnalysisSetup) -> AnalysisCont
 
 #[test]
 fn assesses_srp_risk_from_a_large_class_finding() {
-    let mut source = String::from("class BigOne {\n");
-    for i in 0..20 {
-        let _ = writeln!(source, "private int field{i};");
-    }
-    for i in 0..40 {
-        let _ = writeln!(source, "void M{i}()\n{{\n    var x{i} = {i};\n}}");
-    }
-    source.push('}');
-    let (project, findings, setup) = analyze(&source);
+    let (project, findings, setup) =
+        analyze(include_str!("fixtures/TestSubjects/src/LargeClass.cs"));
     assert!(findings.iter().any(|f| f.rule_id == "LARGE_CLASS"));
 
     let risks = assess_principle_risks(&context(&project, &setup), &findings);
@@ -105,7 +96,8 @@ fn assesses_srp_risk_from_a_large_class_finding() {
 
 #[test]
 fn does_not_assess_srp_risk_without_a_supporting_finding() {
-    let (project, findings, setup) = analyze("class Order { void Ship() { var x = 1; } }");
+    let (project, findings, setup) =
+        analyze(include_str!("fixtures/TestSubjects/src/SmallMethod.cs"));
     assert!(findings.is_empty());
     let risks = assess_principle_risks(&context(&project, &setup), &findings);
     assert!(risks.is_empty());
@@ -113,18 +105,9 @@ fn does_not_assess_srp_risk_without_a_supporting_finding() {
 
 #[test]
 fn assesses_ocp_risk_from_a_switch_statements_finding() {
-    let source = "class ShapeRenderer { \
-         void Render(int kind) { \
-             switch (kind) { \
-                 case 1: if (kind > 0) { if (kind > 1) { if (kind > 2) { break; } } } break; \
-                 case 2: if (kind > 0) { if (kind > 1) { if (kind > 2) { break; } } } break; \
-                 case 3: if (kind > 0) { if (kind > 1) { if (kind > 2) { break; } } } break; \
-                 case 4: if (kind > 0) { if (kind > 1) { if (kind > 2) { break; } } } break; \
-                 default: break; \
-             } \
-         } \
-     }";
-    let (project, findings, setup) = analyze(source);
+    let (project, findings, setup) = analyze(include_str!(
+        "fixtures/TestSubjects/src/SwitchStatementsComplex.cs"
+    ));
     assert!(findings.iter().any(|f| f.rule_id == "SWITCH_STATEMENTS"));
     let risks = assess_principle_risks(&context(&project, &setup), &findings);
     assert!(risks.iter().any(|risk| risk.principle == Principle::Ocp));
@@ -132,57 +115,45 @@ fn assesses_ocp_risk_from_a_switch_statements_finding() {
 
 #[test]
 fn assesses_dip_risk_for_a_type_that_depends_mostly_on_concrete_classes() {
-    let source = "class Order { \
-         Concrete1 A() { return new Concrete1(); } \
-         Concrete2 B() { return new Concrete2(); } \
-         Concrete3 C() { return new Concrete3(); } \
-         Concrete4 D() { return new Concrete4(); } \
-     } \
-     class Concrete1 {} class Concrete2 {} class Concrete3 {} class Concrete4 {}";
-    let (project, _, setup) = analyze(source);
+    let (project, _, setup) = analyze(include_str!(
+        "fixtures/TestSubjects/src/DipConcreteDependencies.cs"
+    ));
     let risks = assess_principle_risks(&context(&project, &setup), &[]);
     assert!(risks.iter().any(|risk| risk.principle == Principle::Dip));
 }
 
 #[test]
 fn does_not_assess_dip_risk_with_too_few_dependencies() {
-    let source = "class Order { Concrete1 A() { return new Concrete1(); } } class Concrete1 {}";
-    let (project, _, setup) = analyze(source);
+    let (project, _, setup) = analyze(include_str!(
+        "fixtures/TestSubjects/src/DipTooFewDependencies.cs"
+    ));
     let risks = assess_principle_risks(&context(&project, &setup), &[]);
     assert!(!risks.iter().any(|risk| risk.principle == Principle::Dip));
 }
 
 #[test]
 fn assesses_isp_risk_for_a_stubbed_interface_member() {
-    let source = "interface IWorker { void DoWork(); void DoOther(); } \
-         class Worker : IWorker { \
-             void DoWork() { this.Persist(); } \
-             void DoOther() { throw new NotImplementedException(); } \
-             void Persist() {} \
-         }";
-    let (project, _, setup) = analyze(source);
+    let (project, _, setup) = analyze(include_str!(
+        "fixtures/TestSubjects/src/IspStubbedMember.cs"
+    ));
     let risks = assess_principle_risks(&context(&project, &setup), &[]);
     assert!(risks.iter().any(|risk| risk.principle == Principle::Isp));
 }
 
 #[test]
 fn does_not_assess_isp_risk_when_every_interface_member_is_implemented() {
-    let source = "interface IWorker { void DoWork(); } \
-         class Worker : IWorker { void DoWork() { this.Persist(); } void Persist() {} }";
-    let (project, _, setup) = analyze(source);
+    let (project, _, setup) = analyze(include_str!(
+        "fixtures/TestSubjects/src/IspAllImplemented.cs"
+    ));
     let risks = assess_principle_risks(&context(&project, &setup), &[]);
     assert!(!risks.iter().any(|risk| risk.principle == Principle::Isp));
 }
 
 #[test]
 fn assesses_law_of_demeter_risk_for_deep_chain_access() {
-    let source = "class Order { \
-         void Ship() { \
-             a.b.c.Foo(); \
-             x.y.z.Bar(); \
-         } \
-     }";
-    let (project, _, setup) = analyze(source);
+    let (project, _, setup) = analyze(include_str!(
+        "fixtures/TestSubjects/src/LawOfDemeterDeepChain.cs"
+    ));
     let risks = assess_principle_risks(&context(&project, &setup), &[]);
     assert!(risks
         .iter()
@@ -191,8 +162,9 @@ fn assesses_law_of_demeter_risk_for_deep_chain_access() {
 
 #[test]
 fn does_not_assess_law_of_demeter_risk_for_shallow_access() {
-    let source = "class Order { void Ship() { this.Validate(); } void Validate() {} }";
-    let (project, _, setup) = analyze(source);
+    let (project, _, setup) = analyze(include_str!(
+        "fixtures/TestSubjects/src/LawOfDemeterShallow.cs"
+    ));
     let risks = assess_principle_risks(&context(&project, &setup), &[]);
     assert!(!risks
         .iter()
@@ -201,26 +173,10 @@ fn does_not_assess_law_of_demeter_risk_for_shallow_access() {
 
 #[test]
 fn recommends_factory_method_when_a_switch_constructs_distinct_types() {
-    let source = "class ShapeFactory { \
-         Shape Create(int kind) { \
-             switch (kind) { \
-                 case 1: return new Circle(); \
-                 case 2: return new Square(); \
-                 default: return new Triangle(); \
-             } \
-         } \
-     } class Shape {} class Circle : Shape {} class Square : Shape {} class Triangle : Shape {}";
-    let (project, _, setup) = analyze(source);
-    let ctx = AnalysisContext {
-        project: &project,
-        graph: &setup.graph,
-        metrics: &setup.metrics,
-        suppressions: &setup.suppressions,
-        clone_signatures: &setup.method_clone_signatures,
-        switch_shapes: &setup.method_switches,
-        history: None,
-    };
-    let recommendations = recommend_patterns(&ctx);
+    let (project, _, setup) = analyze(include_str!(
+        "fixtures/TestSubjects/src/PatternFactoryMethod.cs"
+    ));
+    let recommendations = recommend_patterns(&context(&project, &setup));
     assert_eq!(recommendations.len(), 1);
     assert_eq!(
         recommendations[0].candidate,
@@ -230,25 +186,10 @@ fn recommends_factory_method_when_a_switch_constructs_distinct_types() {
 
 #[test]
 fn recommends_do_nothing_for_a_switch_with_no_object_creation() {
-    let source = "class Order { \
-         void Handle(int kind) { \
-             switch (kind) { \
-                 case 1: break; \
-                 case 2: break; \
-             } \
-         } \
-     }";
-    let (project, _, setup) = analyze(source);
-    let ctx = AnalysisContext {
-        project: &project,
-        graph: &setup.graph,
-        metrics: &setup.metrics,
-        suppressions: &setup.suppressions,
-        clone_signatures: &setup.method_clone_signatures,
-        switch_shapes: &setup.method_switches,
-        history: None,
-    };
-    let recommendations = recommend_patterns(&ctx);
+    let (project, _, setup) = analyze(include_str!(
+        "fixtures/TestSubjects/src/PatternDoNothing.cs"
+    ));
+    let recommendations = recommend_patterns(&context(&project, &setup));
     assert_eq!(recommendations.len(), 1);
     assert_eq!(recommendations[0].candidate, PatternCandidate::DoNothing);
 }
