@@ -51,6 +51,41 @@ note that a PowerShell window opened *before* installing only picks up
 the updated PATH after you open a new window (or manually run
 `$env:PATH += ";$env:USERPROFILE\.cargo\bin"` in the current one).
 
+### First run in a brand-new PowerShell window — the full checklist
+
+If you've just opened a new terminal (or `scent` was just installed), run
+these in order, one at a time. `<repo>` below means wherever you cloned
+this repository — e.g. `C:\Users\you\DesignPatterns`.
+
+```powershell
+# 1. Go to whatever project you want to analyze.
+cd "<repo>\sdp_lab_tools\code-smells-demo"
+
+# 2. Make sure scent is on PATH for this window (harmless if it already is).
+$env:PATH += ";$env:USERPROFILE\.cargo\bin"
+
+# 3. Optional: enable tab-completion for this window.
+. "<repo>\sdp_lab_tools\scent\completions\scent.ps1"
+# expect: scent: tab-completion enabled. Try: scent <Tab>  or  scent analyze --<Tab>
+
+# 4. Run the analysis.
+scent analyze . --format table
+```
+
+If step 4 still says "not recognized," run this one check and see which
+case you're in:
+
+```powershell
+Test-Path "$env:USERPROFILE\.cargo\bin\scent.exe"
+```
+
+- `True` → the exe exists; step 2 just needs to actually run in *this*
+  window (PATH changes don't retroactively apply to windows already
+  open).
+- `False` → the exe genuinely isn't installed yet; run
+  `cargo install --path crates/scent-cli` from `sdp_lab_tools/scent/`
+  first (see the [README](../README.md)).
+
 ---
 
 ## 1. The pipeline, step by step
