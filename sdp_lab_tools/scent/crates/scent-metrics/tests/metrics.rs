@@ -36,8 +36,9 @@ fn analyze(contents: &str) -> (ProjectIR, scent_metrics::MetricStore) {
 
 #[test]
 fn cyclomatic_complexity_is_one_plus_decision_points() {
-    let (project, metrics) =
-        analyze("class Order { void Process() { if (true) { for (;;) { var x = 1; } } } }");
+    let (project, metrics) = analyze(include_str!(
+        "fixtures/TestSubjects/src/CyclomaticComplexity.cs"
+    ));
     let method = &project.methods[0];
     let cc = metrics
         .get(
@@ -50,13 +51,7 @@ fn cyclomatic_complexity_is_one_plus_decision_points() {
 
 #[test]
 fn lcom4_is_one_when_two_methods_share_a_field() {
-    let (project, metrics) = analyze(
-        "class Order { \
-             private int total; \
-             void A() { this.total = 1; } \
-             void B() { this.total = 2; } \
-         }",
-    );
+    let (project, metrics) = analyze(include_str!("fixtures/TestSubjects/src/Lcom4Connected.cs"));
     let type_ir = &project.types[0];
     let lcom4 = metrics
         .get(&EntityRef::Type(type_ir.id.clone()), MetricKind::Lcom4)
@@ -66,12 +61,9 @@ fn lcom4_is_one_when_two_methods_share_a_field() {
 
 #[test]
 fn lcom4_is_two_when_methods_are_unconnected() {
-    let (project, metrics) = analyze(
-        "class Order { \
-             void A() { var x = 1; } \
-             void B() { var y = 2; } \
-         }",
-    );
+    let (project, metrics) = analyze(include_str!(
+        "fixtures/TestSubjects/src/Lcom4Unconnected.cs"
+    ));
     let type_ir = &project.types[0];
     let lcom4 = metrics
         .get(&EntityRef::Type(type_ir.id.clone()), MetricKind::Lcom4)
@@ -81,8 +73,7 @@ fn lcom4_is_two_when_methods_are_unconnected() {
 
 #[test]
 fn cbo_counts_a_resolved_instantiation_of_another_project_type() {
-    let (project, metrics) =
-        analyze("class OrderFactory { Order Create() { return new Order(); } } class Order {}");
+    let (project, metrics) = analyze(include_str!("fixtures/TestSubjects/src/CboCoupling.cs"));
     let factory = project
         .types
         .iter()
@@ -96,7 +87,7 @@ fn cbo_counts_a_resolved_instantiation_of_another_project_type() {
 
 #[test]
 fn loc_spans_the_methods_declared_lines() {
-    let (project, metrics) = analyze("class Order { void M() {\n var x = 1;\n } }");
+    let (project, metrics) = analyze(include_str!("fixtures/TestSubjects/src/LocSpan.cs"));
     let method = &project.methods[0];
     let loc = metrics
         .get(&EntityRef::Method(method.id.clone()), MetricKind::Loc)
