@@ -100,19 +100,31 @@ fn analyze_path_inner(
     mut on_progress: impl FnMut(&str),
     check_git_history: bool,
 ) -> Result<AnalysisReport, AnalyzeError> {
-    on_progress(&format!(
-        "Discovering C# project files under {}",
-        root.display()
-    ));
+    // Every `stage!` call is one numbered step out of `total_steps`, so a
+    // long-running analysis prints "[3/11] ..." rather than an unnumbered
+    // line the caller can't tell progress from. Git history is the only
+    // stage that's ever skipped, so it's the only thing that changes the
+    // total.
+    let total_steps: u32 = if check_git_history { 12 } else { 11 };
+    let mut step: u32 = 0;
+    macro_rules! stage {
+        ($($arg:tt)*) => {{
+            step += 1;
+            on_progress(&format!("[{step}/{total_steps}] {}", format!($($arg)*)));
+        }};
+    }
+
+    stage!("Discovering C# project files under {}", root.display());
     let discovery = discover_csharp(root, &DiscoveryOptions::default())?;
-    on_progress(&format!(
+    stage!(
         "Discovered {} solution file(s), {} project file(s), {} source file(s), {} excluded",
         discovery.solution_files.len(),
         discovery.project_files.len(),
         discovery.source_files.len(),
         discovery.excluded_source_files.len(),
-    ));
+    );
 
+    step += 1;
     let ParsedFiles {
         project,
         diagnostics,
@@ -120,25 +132,25 @@ fn analyze_path_inner(
         method_complexity,
         method_clone_signatures,
         method_switches,
-    } = parse_all_files(root, &discovery, &mut on_progress)?;
+    } = parse_all_files(root, &discovery, step, total_steps, &mut on_progress)?;
 
-    on_progress("Building declaration index");
+    stage!("Building declaration index");
     let index = DeclarationIndex::build(&project);
-    on_progress("Resolving intra-project references");
+    stage!("Resolving intra-project references");
     let project = resolve_project(project, &index);
-    on_progress("Building the dependency graph");
+    stage!("Building the dependency graph");
     let graph = build_graph(&project);
-    on_progress("Calculating metrics (LOC, CC, nesting, LCOM4, CBO)");
+    stage!("Calculating metrics (LOC, CC, nesting, LCOM4, CBO)");
     let metrics = build_metric_store(&project, &graph, &method_complexity);
     let git_history = if check_git_history {
-        on_progress("Reading Git history (co-change graph)");
+        stage!("Reading Git history (co-change graph)");
         build_history(root, &project)
     } else {
         None
     };
-    on_progress("Loading configuration (smell_detector.toml)");
+    stage!("Loading configuration (smell_detector.toml)");
     let config = ScentConfig::load(root);
-    on_progress("Evaluating rules");
+    stage!("Evaluating rules");
     let ctx = AnalysisContext {
         project: &project,
         graph: &graph,
@@ -156,11 +168,11 @@ fn analyze_path_inner(
             }
         }
     }
-    on_progress("Assessing principle risks, pattern and refactoring recommendations");
+    stage!("Assessing principle risks, pattern and refactoring recommendations");
     let principle_risks = assess_principle_risks(&ctx, &findings);
     let pattern_recommendations = recommend_patterns(&ctx);
     let refactoring_recommendations = recommend_refactorings(&findings);
-    on_progress("Analysis complete");
+    stage!("Analysis complete");
 
     Ok(AnalysisReport {
         discovery,
@@ -192,6 +204,8 @@ struct ParsedFiles {
 fn parse_all_files(
     root: &Path,
     discovery: &DiscoveryResult,
+    step: u32,
+    total_steps: u32,
     on_progress: &mut impl FnMut(&str),
 ) -> Result<ParsedFiles, AnalyzeError> {
     let mut adapter = CSharpAdapter::new();
@@ -215,7 +229,7 @@ fn parse_all_files(
     source_files.sort();
     for (index, path) in source_files.iter().enumerate() {
         on_progress(&format!(
-            "Parsing [{}/{}] {path}",
+            "[{step}/{total_steps}] Parsing file [{}/{}] {path}",
             index + 1,
             source_files.len()
         ));
