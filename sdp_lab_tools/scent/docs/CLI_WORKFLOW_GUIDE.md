@@ -11,6 +11,11 @@ fixtures, not written from memory or invented. Commands are run from
 below (`crates\scent-core\tests\fixtures\...`) are short — it is not a
 requirement.
 
+**The leading `>` in every command block below is the shell prompt, not
+part of the command.** It's the same convention as a `$` in bash docs —
+it marks "this is a line you type," it isn't something you type yourself.
+Type `scent analyze <path>`, not `> scent analyze <path>`.
+
 ---
 
 ## 0. Where to actually run these from
