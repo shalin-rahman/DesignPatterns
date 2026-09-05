@@ -122,6 +122,10 @@ to update the installed binary; `cargo uninstall scent-cli` removes it.
 | `rules` | Lists every registered rule id and name. |
 | `gate <path>` | Runs the analysis, then passes/fails against a quality gate (`--max-critical`, `--max-high`, or `[quality_gate]` in `smell_detector.toml`). Exits non-zero on failure — the shape a CI step needs. |
 
+Typo'd a command name? `scent anlyze` prints `did you mean 'analyze'?`
+(only within a small edit distance of a real command, so an unrelated
+word doesn't get a misleading guess).
+
 Progress lines are printed to stderr as each pipeline stage runs, so stdout
 stays a clean, pipeable report. See
 [docs/CLI_WORKFLOW_GUIDE.md](docs/CLI_WORKFLOW_GUIDE.md) for a real,
