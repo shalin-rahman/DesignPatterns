@@ -10,10 +10,15 @@ use scent_rules::default_registry;
 fn main() -> ExitCode {
     let mut args = env::args().skip(1);
     match args.next().as_deref() {
+        Some("-h" | "--help") | None => {
+            print_help();
+            ExitCode::SUCCESS
+        }
         Some("analyze") => run_analyze(&args.collect::<Vec<_>>()),
         Some("rules") => run_rules(),
         Some("gate") => run_gate(&args.collect::<Vec<_>>()),
-        _ => {
+        Some(other) => {
+            eprintln!("scent: unrecognized command '{other}'");
             print_usage();
             ExitCode::FAILURE
         }
@@ -21,6 +26,10 @@ fn main() -> ExitCode {
 }
 
 fn run_analyze(rest: &[String]) -> ExitCode {
+    if has_flag(rest, "-h") || has_flag(rest, "--help") {
+        print_analyze_help();
+        return ExitCode::SUCCESS;
+    }
     let Some(path) = rest.first() else {
         print_usage();
         return ExitCode::FAILURE;
@@ -32,7 +41,8 @@ fn run_analyze(rest: &[String]) -> ExitCode {
             match format {
                 "json" => println!("{}", to_json(&report)),
                 "sarif" => println!("{}", to_sarif(&report.findings)),
-                _ => print_summary(&report),
+                "table" => print_table(path, &report),
+                _ => print_summary(path, &report),
             }
             ExitCode::SUCCESS
         }
@@ -41,6 +51,10 @@ fn run_analyze(rest: &[String]) -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+fn has_flag(args: &[String], flag: &str) -> bool {
+    args.iter().any(|arg| arg == flag)
 }
 
 fn run_rules() -> ExitCode {
@@ -52,6 +66,10 @@ fn run_rules() -> ExitCode {
 }
 
 fn run_gate(rest: &[String]) -> ExitCode {
+    if has_flag(rest, "-h") || has_flag(rest, "--help") {
+        print_gate_help();
+        return ExitCode::SUCCESS;
+    }
     let Some(path) = rest.first() else {
         print_usage();
         return ExitCode::FAILURE;
@@ -118,13 +136,66 @@ fn flag_value<'a>(args: &'a [String], flag: &str) -> Option<&'a str> {
 
 fn print_usage() {
     eprintln!("usage:");
-    eprintln!("  scent analyze <path> [--format human|json|sarif]");
+    eprintln!("  scent analyze <path> [--format human|json|sarif|table]");
     eprintln!("  scent rules");
     eprintln!("  scent gate <path> [--max-critical N] [--max-high N] [--baseline FILE]");
+    eprintln!("  scent --help                (show full help)");
+    eprintln!("  scent analyze --help        (show analyze's flags)");
 }
 
-fn print_summary(report: &AnalysisReport) {
+fn print_help() {
+    println!("scent — static smell/design analysis for C# projects");
+    println!();
+    println!("USAGE:");
+    println!("  scent <COMMAND> [ARGS]");
+    println!();
+    println!("COMMANDS:");
+    println!("  analyze <path>   Analyze a C# solution/project directory and report findings");
+    println!("  rules            List every registered rule id and name");
+    println!("  gate <path>      Analyze, then pass/fail against a quality gate");
+    println!();
+    println!("<path> can be any directory on disk — inside or outside this repo — that");
+    println!("contains a .sln, .csproj, or .cs files. scent only reads it; it never runs");
+    println!("MSBuild or dotnet.");
+    println!();
+    println!("Run 'scent analyze --help' or 'scent gate --help' for a command's own flags.");
+    println!("See docs/CLI_WORKFLOW_GUIDE.md for real examples of every command.");
+}
+
+fn print_analyze_help() {
+    println!("scent analyze <path> [OPTIONS]");
+    println!();
+    println!("Analyze a C# solution/project directory. <path> can point anywhere on");
+    println!("disk, including a directory outside this repository.");
+    println!();
+    println!("OPTIONS:");
+    println!("  --format human   Readable summary with findings, risks, recommendations (default)");
+    println!("  --format json    Full machine-readable report — see docs/JSON_OUTPUT_REFERENCE.md");
+    println!("  --format sarif   SARIF output for editors/CI (e.g. GitHub code scanning)");
+    println!("  --format table   Findings and principle risks as aligned columns");
+    println!("  -h, --help       Show this message");
+    println!();
+    println!("A `smell_detector.toml` file in <path> overrides rule thresholds/severity");
+    println!("and quality-gate limits — see docs/architecture.md.");
+}
+
+fn print_gate_help() {
+    println!("scent gate <path> [OPTIONS]");
+    println!();
+    println!("Analyze <path>, then pass or fail against a quality gate. Exits 0 on");
+    println!("PASSED, 1 on FAILED — safe to use as a CI step.");
+    println!();
+    println!("OPTIONS:");
+    println!("  --max-critical N   Fail if more than N Critical findings (default from");
+    println!("                     smell_detector.toml, else built-in default)");
+    println!("  --max-high N       Fail if more than N High findings");
+    println!("  --baseline FILE    Ignore findings already present in this baseline file");
+    println!("  -h, --help         Show this message");
+}
+
+fn print_summary(path: &str, report: &AnalysisReport) {
     println!("SCENT");
+    println!("Project: {path}");
     println!();
     println!("Discovery");
     println!("  Solutions: {}", report.discovery.solution_files.len());
@@ -203,4 +274,48 @@ fn print_summary(report: &AnalysisReport) {
     }
     println!();
     println!("Diagnostics: {}", report.diagnostics.len());
+}
+
+/// Aligned-column view of the same findings and principle risks the human
+/// summary prints as free text — for pasting into a terminal or a plain
+/// text file where columns need to line up.
+fn print_table(path: &str, report: &AnalysisReport) {
+    println!("Project: {path}");
+    println!();
+
+    println!("FINDINGS ({})", report.findings.len());
+    if report.findings.is_empty() {
+        println!("  (none)");
+    } else {
+        println!("  {:<10} {:<24} {:<8} ENTITY", "SEVERITY", "RULE", "CONF %");
+        for finding in &report.findings {
+            println!(
+                "  {:<10} {:<24} {:<8.0} {}",
+                format!("{:?}", finding.severity),
+                finding.rule_name,
+                f64::from(finding.confidence) * 100.0,
+                finding.entity_id
+            );
+        }
+    }
+    println!();
+
+    println!("PRINCIPLE RISKS ({})", report.principle_risks.len());
+    if report.principle_risks.is_empty() {
+        println!("  (none)");
+    } else {
+        println!(
+            "  {:<8} {:<14} {:<8} EXPLANATION",
+            "RISK", "PRINCIPLE", "CONF %"
+        );
+        for risk in &report.principle_risks {
+            println!(
+                "  {:<8} {:<14} {:<8.0} {}",
+                format!("{:?}", risk.risk),
+                format!("{:?}", risk.principle),
+                f64::from(risk.confidence) * 100.0,
+                risk.explanation
+            );
+        }
+    }
 }
