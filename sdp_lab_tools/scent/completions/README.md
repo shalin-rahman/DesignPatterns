@@ -41,16 +41,19 @@ source /absolute/path/to/scent/completions/scent.bash
 ```
 
 **PowerShell**, for the current session (run from the `scent/` directory).
-The leading `.` and space are required — this is "dot-sourcing," which
-runs the script in your current session so `Register-ArgumentCompleter`
-sticks. Running it as `.\completions\scent.ps1` (no space) or
-double-clicking it instead runs it in a throwaway child scope and the
-completion is discarded the moment the script ends — so it "does
-nothing" with no error:
+Either form works — `Register-ArgumentCompleter` registers for the whole
+session regardless of scope, so dot-sourcing isn't required the way it
+would be for an ordinary function or variable:
 
 ```powershell
 . completions/scent.ps1
+.\completions\scent.ps1
 ```
+
+What *does* matter: it has to run in the same PowerShell process you're
+typing `scent` into. Double-clicking the file, or running it from a
+separate PowerShell window/process, registers the completer there and has
+no effect on the session where you're actually typing commands.
 
 To keep it every session, add the same line to your profile (`$PROFILE`)
 — but with the real absolute path, since the profile doesn't run from

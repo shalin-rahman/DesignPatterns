@@ -6,12 +6,18 @@
 # does not suggest file paths (PowerShell's own path completion already
 # handles <path>).
 #
-# Install for this session only, from the scent/ directory. The leading
-# dot and space matter ("dot-sourcing") — running it as
-# .\completions\scent.ps1 (no space) runs it in a throwaway child scope,
-# so Register-ArgumentCompleter has no lasting effect and completion
-# silently does not work:
+# Install for this session only, from the scent/ directory. Either of
+# these works — Register-ArgumentCompleter registers at the engine level
+# for the current session, not the calling scope, so dot-sourcing isn't
+# required the way it would be for an ordinary function or variable:
 #   . completions/scent.ps1
+#   .\completions\scent.ps1
+#
+# What does matter: it must run in the same PowerShell process you're
+# typing `scent` into. Running it in a separate `powershell.exe` window,
+# a script another process launches, or an unrelated tool call has no
+# effect on your interactive session — there's no cross-process trick
+# here, it really is per-session state.
 #
 # Install permanently: add this to your PowerShell profile ($PROFILE),
 # with the real absolute path to this file (a relative path won't resolve
