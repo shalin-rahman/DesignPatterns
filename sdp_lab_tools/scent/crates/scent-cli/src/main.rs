@@ -4,7 +4,8 @@ use std::{env, fs, path::PathBuf, process::ExitCode};
 
 use scent_config::ScentConfig;
 use scent_core::{analyze_path_with_progress, to_json, AnalysisReport};
-use scent_report::{evaluate_gate, to_sarif, Baseline, QualityGateConfig};
+use scent_domain::SourceLocation;
+use scent_report::{evaluate_gate, read_snippet, to_sarif, Baseline, QualityGateConfig};
 use scent_rules::default_registry;
 
 fn main() -> ExitCode {
@@ -78,7 +79,7 @@ fn run_analyze(rest: &[String]) -> ExitCode {
     match analyze_with_progress(path) {
         Ok(report) => {
             match format {
-                "json" => println!("{}", to_json(&report)),
+                "json" => println!("{}", to_json(&report, std::path::Path::new(path))),
                 "sarif" => println!("{}", to_sarif(&report.findings)),
                 "table" => print_table(path, &report),
                 _ => print_summary(path, &report),
@@ -326,13 +327,17 @@ fn print_table(path: &str, report: &AnalysisReport) {
     if report.findings.is_empty() {
         println!("  (none)");
     } else {
-        println!("  {:<10} {:<24} {:<8} ENTITY", "SEVERITY", "RULE", "CONF %");
+        println!(
+            "  {:<10} {:<24} {:<8} {:<40} ENTITY",
+            "SEVERITY", "RULE", "CONF %", "LOCATION"
+        );
         for finding in &report.findings {
             println!(
-                "  {:<10} {:<24} {:<8.0} {}",
+                "  {:<10} {:<24} {:<8.0} {:<40} {}",
                 format!("{:?}", finding.severity),
                 finding.rule_name,
                 f64::from(finding.confidence) * 100.0,
+                format_location(&finding.location),
                 finding.entity_id
             );
         }
@@ -356,5 +361,45 @@ fn print_table(path: &str, report: &AnalysisReport) {
                 risk.explanation
             );
         }
+    }
+    println!();
+
+    println!("SOURCE");
+    if report.findings.is_empty() {
+        println!("  (none)");
+    } else {
+        let root = std::path::Path::new(path);
+        for finding in &report.findings {
+            println!();
+            println!(
+                "  {} — {}",
+                finding.rule_name,
+                format_location(&finding.location)
+            );
+            match read_snippet(root, &finding.location) {
+                Some(snippet) => {
+                    for (line, text) in &snippet.lines {
+                        println!("    {line:>5} | {text}");
+                    }
+                    if snippet.omitted > 0 {
+                        println!("    ... ({} more line(s) omitted)", snippet.omitted);
+                    }
+                }
+                None => println!("    (source not available)"),
+            }
+        }
+    }
+}
+
+/// `path:line` for a single-line location, `path:start-end` for a range —
+/// 1-based, since that's what an editor/error message shows a human,
+/// even though the underlying `SourceLocation` rows are 0-based.
+fn format_location(location: &SourceLocation) -> String {
+    let start = location.range.start.line + 1;
+    let end = location.range.end.line + 1;
+    if start == end {
+        format!("{}:{start}", location.path)
+    } else {
+        format!("{}:{start}-{end}", location.path)
     }
 }

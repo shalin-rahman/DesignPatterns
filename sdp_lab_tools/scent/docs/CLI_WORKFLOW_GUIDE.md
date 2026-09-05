@@ -96,6 +96,10 @@ stage starts. Each line is numbered `[step/total]` so a long analysis
 tells you how far through it is, not just what it's doing right now —
 this section explains what each numbered line actually means.
 
+(Run from `sdp_lab_tools/scent/` — that's why the path below is short. See
+§0 above: `scent` itself works from any directory, this is just where this
+doc's examples happen to be captured from.)
+
 ```text
 > scent analyze crates\scent-core\tests\fixtures\sample-project
 ```
@@ -343,13 +347,31 @@ paste somewhere that needs straight columns:
 Project: crates\scent-core\tests\fixtures\config-project
 
 FINDINGS (1)
-  SEVERITY   RULE                     CONF %   ENTITY
-  Critical   Long Method              54       e311e3a6a3055c3647bbfe1abe1a8e45a0ec42f129bcdaa1dc8e8d19dbe70c12
+  SEVERITY   RULE                     CONF %   LOCATION                                 ENTITY
+  Critical   Long Method              54       src/Order.cs:5-10                        e311e3a6a3055c3647bbfe1abe1a8e45a0ec42f129bcdaa1dc8e8d19dbe70c12
 
 PRINCIPLE RISKS (1)
   RISK     PRINCIPLE      CONF %   EXPLANATION
   Medium   Kiss           54       Medium KISS risk: evidence suggests unnecessary complexity relative to what the entity needs to do
+
+SOURCE
+
+  Long Method — src/Order.cs:5-10
+        5 |         public void Ship()
+        6 |         {
+        7 |             var a = 1;
+        8 |             var b = 2;
+        9 |             var c = 3;
+       10 |         }
 ```
+
+`LOCATION` is `path:start-end` (1-based line numbers — an editor's
+convention, even though the underlying data is 0-based; see
+[docs/JSON_OUTPUT_REFERENCE.md](JSON_OUTPUT_REFERENCE.md#a-finding)). The
+`SOURCE` section below the two tables prints each finding's actual code,
+read from disk at the time you ran this command, capped at 20 lines from
+the start (with an "N more line(s) omitted" note when a finding's body is
+longer than that).
 
 This is not JSON — it's plain text, meant for a terminal or a text file.
 If you need the data in a structured form to feed another tool, use
@@ -363,7 +385,11 @@ field means.
 
 The full deterministic report — every fact, metric, finding, principle
 risk, and recommendation, as one JSON object. Two runs over the same input
-produce byte-identical output (this is tested).
+produce byte-identical output (this is tested) — with one exception: each
+finding's `snippet` is the real source text, read from disk fresh each
+run, so it only stays identical between runs if the source file itself
+hasn't changed in between. See
+[docs/JSON_OUTPUT_REFERENCE.md](JSON_OUTPUT_REFERENCE.md#a-finding).
 
 ```text
 > scent analyze crates\scent-core\tests\fixtures\config-project --format json
@@ -386,8 +412,21 @@ produce byte-identical output (this is tested).
   ],
   "findings": [{
     "rule": "LONG_METHOD",
+    "entity": "e311e3a6a3055c3647bbfe1abe1a8e45a0ec42f129bcdaa1dc8e8d19dbe70c12",
     "severity": "critical",
     "confidence": 0.5428571701049805,
+    "location": { "path": "src/Order.cs", "start_line": 4, "start_column": 8, "end_line": 9, "end_column": 9 },
+    "snippet": {
+      "lines": [
+        { "line": 5, "text": "        public void Ship()" },
+        { "line": 6, "text": "        {" },
+        { "line": 7, "text": "            var a = 1;" },
+        { "line": 8, "text": "            var b = 2;" },
+        { "line": 9, "text": "            var c = 3;" },
+        { "line": 10, "text": "        }" }
+      ],
+      "omitted_lines": 0
+    },
     "evidence": [
       { "metric": "loc", "observed_value": 6, "explanation": "6 physical lines (threshold 1)" },
       { "metric": "cyclomatic_complexity", "observed_value": 1, "explanation": "cyclomatic complexity 1 (threshold 1)" },

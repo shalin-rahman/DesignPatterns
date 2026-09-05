@@ -1,8 +1,17 @@
+use std::path::Path;
+
 use scent_domain::{
     NormalizedPath, Resolution, Severity, SourceLocation, SourcePosition, SourceRange,
 };
 use scent_report::{evaluate_gate, findings_to_json_string, to_sarif, Baseline, QualityGateConfig};
 use scent_rules::{EvidenceItem, Finding, FindingFingerprint};
+
+// These findings' locations don't correspond to a real file on disk, so
+// any root works here — the snippet just comes back `null`, which these
+// tests don't assert on.
+fn no_root() -> &'static Path {
+    Path::new(".")
+}
 
 fn location() -> SourceLocation {
     let path = NormalizedPath::parse("src/Order.cs").unwrap();
@@ -39,8 +48,8 @@ fn sample_finding(rule_id: &'static str, severity: Severity) -> Finding {
 #[test]
 fn findings_json_round_trips_deterministically() {
     let findings = vec![sample_finding("LONG_METHOD", Severity::High)];
-    let first = findings_to_json_string(&findings);
-    let second = findings_to_json_string(&findings);
+    let first = findings_to_json_string(&findings, no_root());
+    let second = findings_to_json_string(&findings, no_root());
     assert_eq!(first, second);
     assert!(first.contains("\"rule\":\"LONG_METHOD\""));
     assert!(first.contains("\"severity\":\"high\""));
@@ -110,5 +119,5 @@ fn unresolved_evidence_target_is_not_required_for_a_finding_to_serialize() {
         reason: "not yet resolved".into(),
     });
     let findings = vec![sample_finding("LONG_METHOD", Severity::Low)];
-    assert!(!findings_to_json_string(&findings).is_empty());
+    assert!(!findings_to_json_string(&findings, no_root()).is_empty());
 }

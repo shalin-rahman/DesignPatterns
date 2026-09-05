@@ -48,8 +48,8 @@ fn scans_suppressions_from_source_comments() {
 
 #[test]
 fn json_report_is_byte_identical_across_runs() {
-    let first = to_json(&analyze_path(fixture_root()).unwrap());
-    let second = to_json(&analyze_path(fixture_root()).unwrap());
+    let first = to_json(&analyze_path(fixture_root()).unwrap(), fixture_root());
+    let second = to_json(&analyze_path(fixture_root()).unwrap(), fixture_root());
     assert_eq!(first, second);
     assert!(first.starts_with("{\"project_id\":"));
 }

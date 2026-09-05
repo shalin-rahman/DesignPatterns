@@ -25,7 +25,7 @@ fn json_report_matches_the_golden_snapshot() {
     ));
     let golden_path = root.join("expected_output.json");
 
-    let actual = to_json(&analyze_path_without_git_history(root).unwrap());
+    let actual = to_json(&analyze_path_without_git_history(root).unwrap(), root);
 
     if std::env::var("UPDATE_GOLDEN").is_ok() {
         std::fs::write(&golden_path, &actual).unwrap();

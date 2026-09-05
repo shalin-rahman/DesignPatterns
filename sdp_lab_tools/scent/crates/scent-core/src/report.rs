@@ -6,6 +6,8 @@
 //! `Json` writer `scent-report` uses for findings/SARIF, so the workspace
 //! has one deterministic JSON serializer, not several.
 
+use std::path::Path;
+
 use scent_domain::{Diagnostic, DiagnosticKind, Resolution, SourceLocation, Visibility};
 use scent_graph::EntityRef;
 use scent_ir::{
@@ -21,9 +23,12 @@ use scent_rules::{
 use crate::AnalysisReport;
 
 /// Renders the analysis result as a canonical JSON report. Two calls over
-/// the same input produce byte-identical output.
+/// the same input, from the same `root`, produce byte-identical output.
+/// `root` is the analyzed project directory (the same path passed to
+/// `analyze_path`) — each finding's `snippet` is read from the real file
+/// under it, so the report stays accurate to what's on disk right now.
 #[must_use]
-pub fn to_json(report: &AnalysisReport) -> String {
+pub fn to_json(report: &AnalysisReport, root: &Path) -> String {
     let mut out = String::new();
     Json::Object(vec![
         (
@@ -76,7 +81,13 @@ pub fn to_json(report: &AnalysisReport) -> String {
         ("metrics", Json::Array(metrics_json(&report.metrics))),
         (
             "findings",
-            Json::Array(report.findings.iter().map(finding_json).collect()),
+            Json::Array(
+                report
+                    .findings
+                    .iter()
+                    .map(|finding| finding_json(finding, root))
+                    .collect(),
+            ),
         ),
         (
             "principle_risks",

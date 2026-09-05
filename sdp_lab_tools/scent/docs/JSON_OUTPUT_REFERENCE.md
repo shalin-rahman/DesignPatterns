@@ -33,9 +33,25 @@ findings and principle risks as aligned text columns, not JSON.
 ```json
 {
   "rule": "LONG_METHOD",
+  "rule_name": "Long Method",
+  "entity": "e311e3a6...",
+  "fingerprint": "LONG_METHOD:9f2a...",
   "severity": "critical",
   "confidence": 0.54,
-  "entity": "e311e3a6...",
+  "location": {
+    "path": "src/OrderService.cs",
+    "start_line": 12,
+    "start_column": 4,
+    "end_line": 63,
+    "end_column": 5
+  },
+  "snippet": {
+    "lines": [
+      { "line": 13, "text": "    public void ProcessOrder(Order order, string paymentType)" },
+      { "line": 14, "text": "    {" }
+    ],
+    "omitted_lines": 32
+  },
   "evidence": [
     { "metric": "loc", "observed_value": 6, "explanation": "6 physical lines (threshold 1)" }
   ]
@@ -45,9 +61,13 @@ findings and principle risks as aligned text columns, not JSON.
 | Field | Plain-words meaning |
 |---|---|
 | `rule` | Which of the 13 built-in rules fired (run `scent rules` for the full list). |
+| `rule_name` | The same rule, as the human-readable name shown in `--format human`/`--format table` ("Long Method" instead of `LONG_METHOD`). |
+| `entity` | The stable id of the method/type/field this finding is about. Cross-reference it against `methods`/`types`/`fields` in the same report to get its full extracted facts — `location` below already gives you the file and line range directly, without needing to do that cross-reference just to find *where* it is. |
+| `fingerprint` | A stable identity for this exact finding (`rule` + `entity`, hashed), used for baseline comparison (`scent gate --baseline`) — unaffected by unrelated edits elsewhere in the file. |
 | `severity` | **How bad this is**, one of `low` / `medium` / `high` / `critical` (fixed order, worst last). Each rule has a built-in default severity; `smell_detector.toml` can override it per rule. |
 | `confidence` | **How sure SCENT is**, 0.0–1.0, shown as a percentage in `--format human`/`--format table`. Built from several weighted, normalized measurements — never a single `metric > threshold` check — so a value near the rule's minimum confidence means "borderline," not "wrong." |
-| `entity` | The stable id of the method/type/field this finding is about. Cross-reference it against `methods`/`types`/`fields` in the same report to get its name and location. |
+| `location` | Where this finding actually lives: `path` is relative to the analyzed project root (the same `<path>` you passed to `scent analyze`), `start_line`/`end_line`/`start_column`/`end_column` are the exact span, **0-based** (row 0 is the file's first line) — `--format table`'s `LOCATION` column and the `SOURCE` section both add 1 before printing, so what you see there is 1-based. |
+| `snippet` | The real source lines `location` covers, read from disk **at report-generation time** — `lines` is `{line, text}` pairs (1-based, matching what an editor shows), capped at 20 lines from the start; `omitted_lines` says how many more there were (0 if none). `null` if the file couldn't be read (moved/deleted since analysis) or the location doesn't fit the file anymore. Because this is read fresh each run, it can differ between two reports if the file changed in between — unlike every other field here, it is not derived purely from the parsed IR. |
 | `evidence` | The specific measurements that added up to this finding — each one names the metric, its observed value, and the threshold it crossed. This is what makes a finding explainable rather than a black box. |
 
 **Severity vs. confidence — the difference**: severity is "how serious is this
