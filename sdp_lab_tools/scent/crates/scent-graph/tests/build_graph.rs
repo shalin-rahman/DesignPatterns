@@ -27,12 +27,7 @@ fn build_project(contents: &str) -> ProjectIR {
 
 #[test]
 fn emits_a_calls_edge_for_a_resolved_self_type_call() {
-    let project = build_project(
-        "namespace Demo { public class Order { \
-             public void Process() { this.Validate(); } \
-             public void Validate() {} \
-         } }",
-    );
+    let project = build_project(include_str!("fixtures/TestSubjects/src/CallsEdge.cs"));
     let graph = build_graph(&project);
     let process = project
         .methods
@@ -55,11 +50,9 @@ fn emits_a_calls_edge_for_a_resolved_self_type_call() {
 
 #[test]
 fn emits_no_edge_for_an_unresolved_framework_type() {
-    let project = build_project(
-        "namespace Demo { public class Order { \
-             public void Process() { new System.Guid(); } \
-         } }",
-    );
+    let project = build_project(include_str!(
+        "fixtures/TestSubjects/src/UnresolvedFrameworkType.cs"
+    ));
     let graph = build_graph(&project);
     let process = &project.methods[0];
     assert!(graph
@@ -69,10 +62,7 @@ fn emits_no_edge_for_an_unresolved_framework_type() {
 
 #[test]
 fn emits_an_implements_edge_for_a_resolved_interface() {
-    let project = build_project(
-        "namespace Demo { public interface IOrder {} \
-             public class Order : IOrder {} }",
-    );
+    let project = build_project(include_str!("fixtures/TestSubjects/src/ImplementsEdge.cs"));
     let graph = build_graph(&project);
     let order = project.types.iter().find(|t| t.name == "Order").unwrap();
     let iorder = project.types.iter().find(|t| t.name == "IOrder").unwrap();
