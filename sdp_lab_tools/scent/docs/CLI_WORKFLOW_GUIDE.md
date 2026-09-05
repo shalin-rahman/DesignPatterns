@@ -7,7 +7,44 @@ pipeline, stage by stage, in plain words.
 
 All output below was captured for real from this repository's own test
 fixtures, not written from memory or invented. Commands are run from
-`sdp_lab_tools/scent/`.
+`sdp_lab_tools/scent/` in this guide only so the example `<path>` values
+below (`crates\scent-core\tests\fixtures\...`) are short — it is not a
+requirement.
+
+---
+
+## 0. Where to actually run these from
+
+**`scent` itself, once installed (`cargo install --path crates/scent-cli`
+— see the repo [README](../README.md)), runs from *any* directory, on any
+project on disk.** Your current directory only matters because `<path>`
+is resolved relative to it — pass an absolute path instead and it doesn't
+matter at all:
+
+```powershell
+# from anywhere — cwd here is unrelated to this repo
+PS C:\Users\you\some-other-project> scent analyze .
+PS C:\Users\you\some-other-project> scent analyze C:\Users\you\some-other-project --format table
+```
+
+**Tab-completion setup (`completions/scent.ps1` / `scent.bash`) also works
+from any directory** — dot-source it once per new terminal window, using
+its full path, and it stays active for that window's whole session (see
+[../completions/README.md](../completions/README.md) for the underlying
+mechanics):
+
+```powershell
+PS C:\Users\you\some-other-project> . "C:\path\to\sdp_lab_tools\scent\completions\scent.ps1"
+scent: tab-completion enabled. Try: scent <Tab>  or  scent analyze --<Tab>
+PS C:\Users\you\some-other-project> scent analyze .
+```
+
+If `scent` itself isn't found ("not recognized as the name of a
+cmdlet..."), that's a PATH problem, not a "wrong directory" problem — see
+the [README's install section](../README.md) for `cargo install`, and
+note that a PowerShell window opened *before* installing only picks up
+the updated PATH after you open a new window (or manually run
+`$env:PATH += ";$env:USERPROFILE\.cargo\bin"` in the current one).
 
 ---
 
