@@ -15,46 +15,55 @@ fixtures, not written from memory or invented. Commands are run from
 
 Every `scent analyze`/`scent gate` invocation runs the same sequence.
 `--format human` (the default) prints a progress line to stderr as each
-stage starts — this section explains what each line actually means.
+stage starts. Each line is numbered `[step/total]` so a long analysis
+tells you how far through it is, not just what it's doing right now —
+this section explains what each numbered line actually means.
 
 ```text
-scent> cargo run -q -p scent-cli -- analyze crates\scent-core\tests\fixtures\sample-project
+> scent analyze crates\scent-core\tests\fixtures\sample-project
 ```
 
 stderr, in order:
 
 ```text
-[scent] Discovering C# project files under crates\scent-core\tests\fixtures\sample-project
-[scent] Discovered 0 solution file(s), 1 project file(s), 1 source file(s), 0 excluded
-[scent] Parsing [1/1] src/Order.cs
-[scent] Building declaration index
-[scent] Resolving intra-project references
-[scent] Building the dependency graph
-[scent] Calculating metrics (LOC, CC, nesting, LCOM4, CBO)
-[scent] Reading Git history (co-change graph)
-[scent] Loading configuration (smell_detector.toml)
-[scent] Evaluating rules
-[scent] Assessing principle risks, pattern and refactoring recommendations
-[scent] Analysis complete
+[scent] [1/12] Discovering C# project files under crates\scent-core\tests\fixtures\sample-project
+[scent] [2/12] Discovered 0 solution file(s), 1 project file(s), 1 source file(s), 0 excluded
+[scent] [3/12] Parsing file [1/1] src/Order.cs
+[scent] [4/12] Building declaration index
+[scent] [5/12] Resolving intra-project references
+[scent] [6/12] Building the dependency graph
+[scent] [7/12] Calculating metrics (LOC, CC, nesting, LCOM4, CBO)
+[scent] [8/12] Reading Git history (co-change graph)
+[scent] [9/12] Loading configuration (smell_detector.toml)
+[scent] [10/12] Evaluating rules
+[scent] [11/12] Assessing principle risks, pattern and refactoring recommendations
+[scent] [12/12] Analysis complete
 ```
 
-What each line is actually doing:
+The total is 12 when the analyzed path is a Git work tree, 11 when it
+isn't (step "Reading Git history" is skipped entirely, not just emptied,
+so the total shrinks by one rather than staying fixed and looking stuck).
+Step 3 ("Parsing file") also carries its own `[i/N]` — that's a second,
+separate counter for *which source file* out of how many, nested inside
+the one overall pipeline step.
+
+What each step is actually doing:
 
 | Step | What happens | Owning crate |
 |---|---|---|
-| **Discovering** | Walks the given directory for `.sln`/`.slnx`/`.csproj`/`.cs` files, skipping `bin/`, `obj/`, `*.g.cs`, `*.Designer.cs` by default. Nothing about C# syntax is understood yet — just file names. | `scent-parser::discovery` |
-| **Discovered N/N/N** | Reports what it found: solution files, project files, source files, and how many were excluded by the rules above. | same |
-| **Parsing [i/N] path** | Feeds that file's raw text through Tree-sitter, producing a Concrete Syntax Tree (a generic parse tree — not SCENT's own model yet). Runs once per discovered source file, in sorted path order (determinism). | `scent-parser::csharp::parse` |
-| *(implicit, same line)* | Extraction walks that CST and pulls out **facts**: namespaces, types, members, calls, field accesses, instantiations, local variables — what the source plainly says, nothing interpreted. | `scent-parser::csharp::extract` |
-| **Building declaration index** | Pass 1 of resolution: records "the project has a type named X," "X has a method named Y," across every file, before trying to resolve anything. | `scent-parser::csharp::index` |
-| **Resolving intra-project references** | Pass 2: matches every recorded spelling (`"Order"`, `"Validate"`, ...) against that index. Exactly one match → `Resolved`. Anything ambiguous, external, or too complex (a framework type, an overloaded call, a multi-hop chain) → stays `Unresolved` with a stated reason — never a guess. | `scent-parser::csharp::resolve` |
-| **Building the dependency graph** | Turns every `Resolved` fact into a typed edge (`Inherits`, `Calls`, `Creates`, `UsesType`, ...). An `Unresolved` fact produces no edge — you can't draw an arrow to something you don't know. | `scent-graph` |
-| **Calculating metrics** | Pure counting over the facts and the graph: LOC (physical lines), cyclomatic complexity (`1 + decision points`), nesting depth, LCOM4 (cohesion), CBO (coupling). No opinions yet. | `scent-metrics` |
-| **Reading Git history** | If the analyzed path is inside a Git work tree, shells out to `git log`/`git show` to build a co-change graph (which entities repeatedly change together). If it isn't a repo, or `git` isn't installed, this silently produces nothing — not an error. | `scent-git` |
-| **Loading configuration** | Looks for `smell_detector.toml` directly under the analyzed path. Missing or unparseable → every rule just runs at its built-in default; this is never treated as an error. | `scent-config` |
-| **Evaluating rules** | Runs every enabled rule (13 built in) against the facts + metrics + graph + git history + suppressions. Each rule combines several weighted, normalized observations into one confidence score — never a bare `metric > threshold` check — and only emits a finding above its minimum confidence. `// scent:disable RULE_ID` comments are applied here, centrally, so no rule has to parse comments itself. | `scent-rules` |
-| **Assessing principle risks...** | Reads the findings (and, for a few, the graph/facts directly) to assess all 9 design principles, recommend a pattern for any switch statement found, and map each finding to a standard refactoring name. | `scent-rules::{principles,patterns,refactoring}` |
-| **Analysis complete** | The whole `AnalysisReport` is now in memory; the CLI renders it as human/JSON/SARIF, or evaluates it against a quality gate. | `scent-cli` |
+| **1. Discovering** | Walks the given directory for `.sln`/`.slnx`/`.csproj`/`.cs` files, skipping `bin/`, `obj/`, `*.g.cs`, `*.Designer.cs` by default. Nothing about C# syntax is understood yet — just file names. | `scent-parser::discovery` |
+| **2. Discovered N/N/N** | Reports what it found: solution files, project files, source files, and how many were excluded by the rules above. | same |
+| **3. Parsing file [i/N] path** | Feeds that file's raw text through Tree-sitter, producing a Concrete Syntax Tree (a generic parse tree — not SCENT's own model yet). Runs once per discovered source file, in sorted path order (determinism). | `scent-parser::csharp::parse` |
+| *(implicit, same step)* | Extraction walks that CST and pulls out **facts**: namespaces, types, members, calls, field accesses, instantiations, local variables — what the source plainly says, nothing interpreted. | `scent-parser::csharp::extract` |
+| **4. Building declaration index** | Pass 1 of resolution: records "the project has a type named X," "X has a method named Y," across every file, before trying to resolve anything. | `scent-parser::csharp::index` |
+| **5. Resolving intra-project references** | Pass 2: matches every recorded spelling (`"Order"`, `"Validate"`, ...) against that index. Exactly one match → `Resolved`. Anything ambiguous, external, or too complex (a framework type, an overloaded call, a multi-hop chain) → stays `Unresolved` with a stated reason — never a guess. | `scent-parser::csharp::resolve` |
+| **6. Building the dependency graph** | Turns every `Resolved` fact into a typed edge (`Inherits`, `Calls`, `Creates`, `UsesType`, ...). An `Unresolved` fact produces no edge — you can't draw an arrow to something you don't know. | `scent-graph` |
+| **7. Calculating metrics** | Pure counting over the facts and the graph: LOC (physical lines), cyclomatic complexity (`1 + decision points`), nesting depth, LCOM4 (cohesion), CBO (coupling). No opinions yet. | `scent-metrics` |
+| **8. Reading Git history** | If the analyzed path is inside a Git work tree, shells out to `git log`/`git show` to build a co-change graph (which entities repeatedly change together). If it isn't a repo, or `git` isn't installed, this step is skipped outright (the total step count drops to 11) — not an error. | `scent-git` |
+| **9. Loading configuration** | Looks for `smell_detector.toml` directly under the analyzed path. Missing or unparseable → every rule just runs at its built-in default; this is never treated as an error. | `scent-config` |
+| **10. Evaluating rules** | Runs every enabled rule (13 built in) against the facts + metrics + graph + git history + suppressions. Each rule combines several weighted, normalized observations into one confidence score — never a bare `metric > threshold` check — and only emits a finding above its minimum confidence. `// scent:disable RULE_ID` comments are applied here, centrally, so no rule has to parse comments itself. | `scent-rules` |
+| **11. Assessing principle risks...** | Reads the findings (and, for a few, the graph/facts directly) to assess all 9 design principles, recommend a pattern for any switch statement found, and map each finding to a standard refactoring name. | `scent-rules::{principles,patterns,refactoring}` |
+| **12. Analysis complete** | The whole `AnalysisReport` is now in memory; the CLI renders it as human/JSON/SARIF/table, or evaluates it against a quality gate. | `scent-cli` |
 
 This is genuinely the same sequence for every command below — `analyze`,
 `gate`, and (internally) `rules` all build on it; only the last step
@@ -65,7 +74,7 @@ This is genuinely the same sequence for every command below — `analyze`,
 ## 2. `--help` — every command's own flags
 
 ```text
-scent> cargo run -q -p scent-cli -- --help
+> scent --help
 ```
 
 ```text
@@ -131,7 +140,7 @@ reads the files under it, it never assumes it's analyzing itself.
 ## 3. `scent analyze` — human summary (default)
 
 ```text
-scent> cargo run -q -p scent-cli -- analyze crates\scent-core\tests\fixtures\sample-project
+> scent analyze crates\scent-core\tests\fixtures\sample-project
 ```
 
 ```text
@@ -176,7 +185,7 @@ that lowers `LONG_METHOD`'s thresholds (see §6) so a small method crosses
 them:
 
 ```text
-scent> cargo run -q -p scent-cli -- analyze crates\scent-core\tests\fixtures\config-project
+> scent analyze crates\scent-core\tests\fixtures\config-project
 ```
 
 ```text
@@ -228,7 +237,7 @@ aligned text columns instead of free-form sentences — easier to scan or
 paste somewhere that needs straight columns:
 
 ```text
-scent> cargo run -q -p scent-cli -- analyze crates\scent-core\tests\fixtures\config-project --format table
+> scent analyze crates\scent-core\tests\fixtures\config-project --format table
 ```
 
 ```text
@@ -258,7 +267,7 @@ risk, and recommendation, as one JSON object. Two runs over the same input
 produce byte-identical output (this is tested).
 
 ```text
-scent> cargo run -q -p scent-cli -- analyze crates\scent-core\tests\fixtures\config-project --format json
+> scent analyze crates\scent-core\tests\fixtures\config-project --format json
 ```
 
 ```json
@@ -344,7 +353,7 @@ for CI systems and IDEs that consume it directly (GitHub code scanning, VS
 Code's SARIF viewer, etc.):
 
 ```text
-scent> cargo run -q -p scent-cli -- analyze crates\scent-core\tests\fixtures\config-project --format sarif
+> scent analyze crates\scent-core\tests\fixtures\config-project --format sarif
 ```
 
 ```json
@@ -378,7 +387,7 @@ Lists every currently registered rule id and name — useful for scripting
 what a build actually enforces:
 
 ```text
-scent> cargo run -q -p scent-cli -- rules
+> scent rules
 ```
 
 ```text
@@ -410,7 +419,7 @@ actually needs.
 **Passing** (the empty sample fixture, generous limits):
 
 ```text
-scent> cargo run -q -p scent-cli -- gate crates\scent-core\tests\fixtures\sample-project --max-critical 0 --max-high 5
+> scent gate crates\scent-core\tests\fixtures\sample-project --max-critical 0 --max-high 5
 ```
 ```text
 scent gate: PASSED (0 finding(s))
@@ -419,7 +428,7 @@ scent gate: PASSED (0 finding(s))
 **Failing** (the config-project fixture, zero critical findings allowed):
 
 ```text
-scent> cargo run -q -p scent-cli -- gate crates\scent-core\tests\fixtures\config-project --max-critical 0
+> scent gate crates\scent-core\tests\fixtures\config-project --max-critical 0
 ```
 ```text
 scent gate: FAILED

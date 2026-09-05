@@ -92,6 +92,26 @@ cargo run -p scent-cli -- gate <path> [--max-critical N] [--max-high N] [--basel
 cargo run -p scent-cli -- gate --help
 ```
 
+`cargo run -p scent-cli --` works from inside this repository. To run it as
+a plain `scent` command from anywhere (any shell, any directory), install
+it once:
+
+```powershell
+cargo install --path crates/scent-cli
+```
+
+This builds a release binary and copies it to `~/.cargo/bin/scent.exe`
+(Cargo's standard install location, already on `PATH` if you installed Rust
+via `rustup`). After that, every command above works with `scent` in place
+of `cargo run -p scent-cli --`, for example:
+
+```powershell
+scent analyze <path> --format table
+```
+
+Re-run `cargo install --path crates/scent-cli` after pulling code changes
+to update the installed binary; `cargo uninstall scent-cli` removes it.
+
 | Command | What it does |
 |---|---|
 | `--help` (top level, or after `analyze`/`gate`) | Prints usage and every flag for that command. Exits 0. |
