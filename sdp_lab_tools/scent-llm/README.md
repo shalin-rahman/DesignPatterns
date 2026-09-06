@@ -6,7 +6,7 @@
 
 A CLI tool that:
 
-1. Generates code by calling a configurable, free LLM backend (local Ollama or cloud Groq).
+1. Generates code by calling a configurable LLM backend (local Ollama or cloud Groq/Gemini).
 2. Statically detects five "LLM code smells" in Python source via AST analysis:
    `NSO` (No Structured Output), `UMM` (Unbounded Max Metrics), `TNES` (Temperature Not
    Explicitly Set), `NMVP` (No Model Version Pinning), `NSM` (No System Message).
@@ -15,8 +15,8 @@ A CLI tool that:
 5. Dry-runs a source file in an isolated sandbox (Docker if available, subprocess otherwise)
    across Python, JS/TS, Go, Ruby, Java, C#, C, and C++.
 
-No API key is hardcoded anywhere. Groq requires `GROQ_API_KEY` in the environment; Ollama
-needs no key and is the default provider.
+No API key is hardcoded anywhere. Groq requires `GROQ_API_KEY`, Gemini requires
+`GEMINI_API_KEY`, and Ollama needs no key and is the default provider.
 
 ## Install
 
@@ -25,7 +25,8 @@ cd sdp_lab_tools/scent-llm
 python -m pip install -e .
 ```
 
-Requires Python 3.10+ (tested on 3.14). No external dependencies beyond `tomli` on 3.10.
+Requires Python 3.10+ (tested on 3.14). Gemini support installs the official
+`google-genai` SDK; `tomli` is also installed on Python 3.10.
 
 ## Configuration
 
@@ -34,9 +35,10 @@ Resolution order: CLI flag > environment variable > `scent_llm.toml` in the cwd 
 | Setting | Env var | Default |
 |---|---|---|
 | provider | `SCENT_LLM_PROVIDER` | `ollama` |
-| model | `SCENT_LLM_MODEL` | `llama3.1:8b` (ollama) / `llama-3.3-70b-versatile` (groq) |
+| model | `SCENT_LLM_MODEL` | provider-specific |
 | Ollama host | `OLLAMA_HOST` | `http://localhost:11434` |
 | Groq API key | `GROQ_API_KEY` | none (required only for `--provider groq`) |
+| Gemini API key | `GEMINI_API_KEY` | none (required only for `--provider gemini`) |
 | temperature | `SCENT_LLM_TEMPERATURE` | `0.2` |
 | max tokens | `SCENT_LLM_MAX_TOKENS` | `2048` |
 
@@ -47,6 +49,13 @@ Resolution order: CLI flag > environment variable > `scent_llm.toml` in the cwd 
 provider = "groq"
 model = "llama-3.3-70b-versatile"
 temperature = 0.1
+```
+
+Gemini can be selected without changing source code:
+
+```powershell
+$env:GEMINI_API_KEY = "your-key"
+scent-llm generate "write a bounded retry helper" --provider gemini --analyze
 ```
 
 ## Usage

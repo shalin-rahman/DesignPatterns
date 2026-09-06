@@ -3,6 +3,7 @@
 Supports two backends out of the box:
   - Ollama (local, no API key, default backend)
   - Groq (cloud, OpenAI-compatible chat completions API)
+  - Gemini (cloud, Google Gen AI SDK)
 
 Both call paths deliberately set every field that scent_llm's own smell
 detectors look for (system message, explicit temperature, bounded max
@@ -48,8 +49,11 @@ class LLMClient:
             return self._generate_groq(system_message, user_message)
         if self.config.provider == "ollama":
             return self._generate_ollama(system_message, user_message)
+        if self.config.provider == "gemini":
+            return self._generate_gemini(system_message, user_message)
         raise LLMClientError(
-            f"Unknown provider '{self.config.provider}'. Supported providers: 'ollama', 'groq'."
+            f"Unknown provider '{self.config.provider}'. Supported providers: "
+            "'ollama', 'groq', 'gemini'."
         )
 
     # -- Ollama ---------------------------------------------------------
@@ -112,6 +116,59 @@ class LLMClient:
             code=_extract_code_block(content),
             raw_response=data,
             provider="groq",
+            model=self.config.model,
+        )
+
+    # -- Gemini -------------------------------------------------------------
+
+    def _generate_gemini(self, system_message: str, user_message: str) -> GenerationResult:
+        if not self.config.gemini_api_key:
+            raise LLMClientError(
+                "Gemini provider selected but no API key was found. "
+                "Set the GEMINI_API_KEY environment variable, or switch to "
+                "provider='ollama' to run fully locally."
+            )
+        try:
+            from google import genai
+            from google.genai import errors
+            from google.genai import types
+        except ImportError as exc:
+            raise LLMClientError(
+                "Gemini support requires the google-genai package. "
+                "Install project dependencies with `python -m pip install -e .`."
+            ) from exc
+
+        try:
+            client = genai.Client(
+                api_key=self.config.gemini_api_key,
+                http_options=types.HttpOptions(timeout=self.config.timeout_seconds * 1000),
+            )
+            response = client.models.generate_content(
+                model=self.config.model,
+                contents=user_message,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_message,
+                    temperature=self.config.temperature,
+                    max_output_tokens=self.config.max_tokens,
+                ),
+            )
+            content = getattr(response, "text", None)
+            if not content:
+                raise LLMClientError("Gemini returned an empty response.")
+        except LLMClientError:
+            raise
+        except errors.APIError as exc:
+            raise LLMClientError(f"Gemini request failed: {exc}") from exc
+
+        raw_response = (
+            response.model_dump(exclude_none=True)
+            if hasattr(response, "model_dump")
+            else {"text": content}
+        )
+        return GenerationResult(
+            code=_extract_code_block(content),
+            raw_response=raw_response,
+            provider="gemini",
             model=self.config.model,
         )
 

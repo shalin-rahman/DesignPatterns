@@ -22,6 +22,7 @@ DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "llama3.1:8b"
 DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 DEFAULT_GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+DEFAULT_GEMINI_MODEL = "gemini-3-flash-preview"
 
 DEFAULT_TEMPERATURE = 0.2
 DEFAULT_MAX_TOKENS = 2048
@@ -42,6 +43,7 @@ class LLMConfig:
     ollama_host: str = DEFAULT_OLLAMA_HOST
     groq_base_url: str = DEFAULT_GROQ_BASE_URL
     groq_api_key: str | None = None
+    gemini_api_key: str | None = None
     temperature: float = DEFAULT_TEMPERATURE
     max_tokens: int = DEFAULT_MAX_TOKENS
     timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS
@@ -61,6 +63,7 @@ class LLMConfig:
             "ollama_host": os.environ.get("OLLAMA_HOST"),
             "groq_base_url": os.environ.get("GROQ_BASE_URL"),
             "groq_api_key": os.environ.get("GROQ_API_KEY"),
+            "gemini_api_key": os.environ.get("GEMINI_API_KEY"),
             "temperature": _maybe_float(os.environ.get("SCENT_LLM_TEMPERATURE")),
             "max_tokens": _maybe_int(os.environ.get("SCENT_LLM_MAX_TOKENS")),
         }
@@ -73,7 +76,11 @@ class LLMConfig:
         if overrides and overrides.get("provider") and not overrides.get("model"):
             if cfg.provider == "groq" and cfg.model == DEFAULT_OLLAMA_MODEL:
                 cfg.model = DEFAULT_GROQ_MODEL
+            elif cfg.provider == "gemini" and cfg.model == DEFAULT_OLLAMA_MODEL:
+                cfg.model = DEFAULT_GEMINI_MODEL
             elif cfg.provider == "ollama" and cfg.model == DEFAULT_GROQ_MODEL:
+                cfg.model = DEFAULT_OLLAMA_MODEL
+            elif cfg.provider == "ollama" and cfg.model == DEFAULT_GEMINI_MODEL:
                 cfg.model = DEFAULT_OLLAMA_MODEL
 
         return cfg
