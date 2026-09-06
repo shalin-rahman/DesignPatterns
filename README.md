@@ -93,6 +93,15 @@ See the [scent-llm configuration and implementation guide](sdp_lab_tools/scent-l
 for provider setup, Gemini details, Hugging Face future integration, smell
 definitions, sandbox isolation, troubleshooting, and tests.
 
+## SpecDetect4LLM research tool
+
+The separate SpecDetect4LLM research checkout has a Windows setup guide at
+[`sdp_lab_tools/specDetect4LLM_setuo_guide.md`](sdp_lab_tools/specDetect4LLM_setuo_guide.md).
+It covers Python 3.11 setup, the detector and web application, Docker usage,
+tests, repository layout, prevalence analysis, and the `R25`–`R29`
+LLM-integration smell rules. Use it to compare the research implementation
+with the smaller [`scent-llm`](sdp_lab_tools/scent-llm/) reference tool.
+
 ## Learning materials
 
 The [`sdp_lab_tools/materials/`](sdp_lab_tools/materials/) directory contains
@@ -126,4 +135,3 @@ Project-specific contribution instructions and verification commands live in:
 - [`scent contributor guide`](sdp_lab_tools/scent/docs/contributor-guide.md)
 - [`scent architecture`](sdp_lab_tools/scent/docs/architecture.md)
 - [`scent-llm full guide`](sdp_lab_tools/scent-llm/docs/GUIDE.md)
-
