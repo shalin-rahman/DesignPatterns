@@ -18,7 +18,7 @@ It also renders two textual diagrams of the tool itself, and can dry-run
 a source file (any of several languages) in an isolated sandbox.
 
 Everything talks to the network only when you explicitly run `generate`
-against `groq` or a remote Ollama host. `analyze`, `sandbox`, and `diagram`
+against `groq`, `gemini`, or a remote Ollama host. `analyze`, `sandbox`, and `diagram`
 never make a network call.
 
 ## 2. Install
@@ -28,9 +28,10 @@ cd sdp_lab_tools/scent-llm
 python -m pip install -e .
 ```
 
-Requires Python 3.10+. No third-party runtime dependency on 3.11+; on 3.10
-`tomli` is pulled in for reading `scent_llm.toml`. Everything else (HTTP,
-AST parsing, subprocess) is standard library.
+Requires Python 3.10+. The project uses the official `google-genai` SDK for
+Gemini; on Python 3.10, `tomli` is also installed for reading
+`scent_llm.toml`. The Ollama and Groq transports otherwise use the standard
+library.
 
 After installing, the `scent-llm` command is on your PATH. You can also
 run it without installing via `python -m scent_llm.cli ...` from inside
@@ -56,7 +57,7 @@ output -> (optional) analyze it. Flags:
 | Flag | Meaning |
 |---|---|
 | `--language LANG` | target language for the generated code (default `python`) |
-| `--provider {ollama,groq}` | override the configured provider for this run |
+| `--provider {ollama,groq,gemini}` | override the configured provider for this run |
 | `--model NAME` | override the configured model for this run |
 | `--temperature FLOAT` | override temperature for this run |
 | `--max-tokens N` | override the output length bound for this run |
@@ -71,7 +72,7 @@ GROQ_API_KEY=sk-... scent-llm generate "a retry wrapper for an HTTP call" \
   --provider groq --out retry.py --analyze
 ```
 
-If neither Ollama is running locally nor a Groq key is set, the command
+If neither Ollama is running locally nor a cloud provider key is set, the command
 prints a specific, actionable error (not a stack trace) and exits 1.
 
 ### 3.2 `analyze` — find LLM code smells
@@ -149,13 +150,38 @@ as well as any UTF-8 terminal.
 Resolution order, highest wins: **CLI flag > environment variable >
 `scent_llm.toml` in the current directory > built-in default.**
 
+### Where configuration belongs
+
+Use the narrowest location that matches the lifetime of the setting:
+
+| Location | Put here | Do not put here |
+|---|---|---|
+| CLI flags | One-off experiments, temporary model/temperature changes | Secrets |
+| Environment variables | API keys, machine- or session-specific endpoints, CI values | Shared project defaults |
+| `scent_llm.toml` in the **current working directory** | Team-shared non-secret defaults | API keys in a committed file |
+| Built-in defaults | Safe fallback for local Ollama | Deployment-specific assumptions |
+
+The config file is looked up from the process current directory, not from the
+directory containing the installed package or the source file being analyzed.
+For example, this command reads
+`C:\work\my-project\scent_llm.toml`:
+
+```powershell
+Set-Location C:\work\my-project
+scent-llm generate "write a parser"
+```
+
+`analyze`, `sandbox`, and `diagram` do not need LLM configuration. They only
+load configuration as part of `generate`.
+
 | Setting | CLI flag | Env var | `scent_llm.toml` key | Default |
 |---|---|---|---|---|
 | Provider | `--provider` | `SCENT_LLM_PROVIDER` | `llm.provider` | `ollama` |
-| Model | `--model` | `SCENT_LLM_MODEL` | `llm.model` | `llama3.1:8b` (ollama) / `llama-3.3-70b-versatile` (groq) |
+| Model | `--model` | `SCENT_LLM_MODEL` | `llm.model` | provider-specific |
 | Ollama host | — | `OLLAMA_HOST` | `llm.ollama_host` | `http://localhost:11434` |
 | Groq base URL | — | `GROQ_BASE_URL` | `llm.groq_base_url` | `https://api.groq.com/openai/v1` |
 | Groq API key | — | `GROQ_API_KEY` | `llm.groq_api_key` (not recommended — use the env var) | none |
+| Gemini API key | — | `GEMINI_API_KEY` | `llm.gemini_api_key` (not recommended — use the env var) | none |
 | Temperature | `--temperature` | `SCENT_LLM_TEMPERATURE` | `llm.temperature` | `0.2` |
 | Max tokens | `--max-tokens` | `SCENT_LLM_MAX_TOKENS` | `llm.max_tokens` | `2048` |
 | Request timeout | — | — | `llm.timeout_seconds` | `60` |
@@ -186,6 +212,160 @@ env vars / defaults) — it will never crash the tool.
 - **Groq (cloud, needs a free API key):** get a key at console.groq.com,
   then `export GROQ_API_KEY=...` (or the PowerShell equivalent
   `$env:GROQ_API_KEY = "..."`) and pass `--provider groq`.
+- **Gemini (cloud, API key and quota required):** create a key in Google AI
+  Studio, set `$env:GEMINI_API_KEY = "..."` in PowerShell (or
+  `export GEMINI_API_KEY=...` on macOS/Linux), and pass `--provider gemini`.
+  The default model is `gemini-3-flash-preview`; override it with `--model` or
+  `SCENT_LLM_MODEL`.
+
+The package installs the current `google-genai` SDK automatically:
+
+```powershell
+python -m pip install -e .
+```
+
+Gemini example:
+
+```powershell
+$env:GEMINI_API_KEY = "your-key"
+scent-llm generate "write a Python JSON validator" `
+  --provider gemini `
+  --model gemini-3-flash-preview `
+  --temperature 0.2 `
+  --max-tokens 1024 `
+  --out validator.py `
+  --analyze
+```
+
+The Gemini adapter sends a system instruction, explicit temperature, and
+`max_output_tokens`. Quotas and model availability are controlled by Google
+AI Studio; quota errors should be handled by reducing request frequency or
+selecting an available model.
+
+### Hugging Face relevance and future integration
+
+Hugging Face is relevant to the learning model and to a future provider
+adapter, but it is **not a currently supported `scent-llm` provider**. The
+current implementation accepts `ollama`, `groq`, and `gemini`; do not configure
+`provider = "huggingface"` and expect it to work.
+
+Hugging Face's current documentation reinforces several behaviors already
+represented by this project:
+
+- chat models expect a model-specific chat template; structured
+  `system`/`user`/`assistant` messages are converted into the model's control
+  tokens;
+- generation should use explicit bounds such as `max_new_tokens`;
+- hosted inference uses a Hub model ID and a selected inference provider;
+- local inference can connect through servers such as Ollama, vLLM, TGI, or
+  other OpenAI-compatible endpoints.
+
+If Hugging Face support is implemented later, the safe design is a new
+provider adapter in `llm_client.py`, not a special case in the detectors:
+
+1. Add a provider choice and configuration fields for the Hub model ID,
+   endpoint/provider, token, revision, timeout, and generation limit.
+2. Keep the token in an environment variable or CI secret; never commit it
+   to `scent_llm.toml`.
+3. Preserve an explicit system message and use the model's documented chat
+   template rather than assuming OpenAI-compatible formatting.
+4. Pin the model ID plus a revision or immutable deployment where the backend
+   supports it; a mutable Hub name should be treated as the NMVP risk.
+5. Add mocked transport tests and an end-to-end test against an explicitly
+   opted-in endpoint. Do not make network access part of the default test
+   suite.
+
+Reference material:
+
+- [LLM Code Smells: A Taxonomy and Detection Approach](../../materials/LLM%20Code%20Smells-%20A%20Taxonomy%20and%20Detection%20Approach.pdf)
+- [Specification and Detection of LLM Code Smells](../../materials/Specification%20and%20Detection%20of%20LLM%20Code%20Smells%20paper.pdf)
+- [Hugging Face chat templates](https://huggingface.co/docs/transformers/main/en/chat_templating)
+- [Hugging Face text generation](https://huggingface.co/docs/transformers/main/en/llm_tutorial)
+- [Hugging Face server inference](https://huggingface.co/docs/huggingface_hub/en/guides/inference)
+
+### Configuration scenarios
+
+#### Scenario A: local Ollama, no secrets
+
+```powershell
+ollama pull llama3.1:8b
+ollama serve
+Set-Location C:\work\DesignPatterns\sdp_lab_tools\scent-llm
+scent-llm generate "write a pure Python CSV validator" --out validator.py --analyze
+```
+
+Use this for offline development. If Ollama runs on another machine, set
+`$env:OLLAMA_HOST` to its reachable URL. The host must also be reachable from
+the machine running `scent-llm`.
+
+#### Scenario B: shared project defaults with a local config file
+
+Create `scent_llm.toml` in the project directory (and commit it only after
+confirming it contains no secret):
+
+```toml
+[llm]
+provider = "ollama"
+model = "llama3.1:8b"
+temperature = 0.0
+max_tokens = 1024
+timeout_seconds = 90
+system_message = "You are a precise code reviewer. Prefer small, testable changes."
+```
+
+Then run from that directory:
+
+```powershell
+scent-llm generate "review this function for edge cases" --out review.py
+```
+
+#### Scenario C: Groq for a cloud/CI run
+
+Keep the provider choice in the file or command, but inject the secret at
+runtime:
+
+```powershell
+$env:GROQ_API_KEY = "replace-me"
+scent-llm generate "write a bounded retry helper" `
+  --provider groq --model llama-3.3-70b-versatile --analyze
+Remove-Item Env:GROQ_API_KEY
+```
+
+In CI, store `GROQ_API_KEY` in the runner's secret store. Do not echo it,
+write it to `scent_llm.toml`, or pass it as a command-line argument.
+
+#### Scenario D: troubleshoot precedence
+
+Start with the lowest layer and add one override at a time:
+
+1. Run with no file or environment variables; this checks built-in Ollama defaults.
+2. Add `scent_llm.toml`; confirm the request uses its provider/model.
+3. Set `SCENT_LLM_MODEL`; confirm it beats the TOML model.
+4. Add `--model`; confirm it beats the environment value.
+
+The progress line printed by `generate` includes the resolved
+`provider:model`, which is the quickest non-secret configuration check.
+
+## 4.1 Implementation map: where behavior lives
+
+Use this map when extending or reviewing the tool:
+
+| Concern | File | Responsibility |
+|---|---|---|
+| CLI surface | `scent_llm/cli.py` | Parses commands, flags, progress, exit codes |
+| Configuration | `scent_llm/config.py` | Defaults, TOML loading, environment mapping, precedence |
+| Provider calls | `scent_llm/llm_client.py` | Ollama/Groq payloads, HTTP errors, code extraction |
+| Call-site discovery | `scent_llm/analysis/ast_analyzer.py` | Recognizes SDK call shapes without importing SDKs |
+| Smell rules | `scent_llm/smells/detectors.py` | One pure detector per smell |
+| Refactoring advice | `scent_llm/smells/refactor.py` | Human-readable fix suggestions |
+| Directory orchestration | `scent_llm/runner.py` | Python discovery and report aggregation |
+| Dry-run execution | `scent_llm/sandbox/dry_run.py` | Docker-first or subprocess fallback |
+| Diagrams | `scent_llm/visualization/architecture.py` | Tree and pipeline text views |
+
+To add a smell, add a detector returning `Finding | None` and register it in
+`_ALL_DETECTORS`; then add a focused test. To add a configuration setting,
+update the dataclass default, TOML/env loading, any CLI override, and this
+table together.
 
 ## 5. The five LLM code smells
 
@@ -207,6 +387,34 @@ Detection is heuristic and intentionally conservative: if an argument's
 value is a variable or expression rather than a literal (e.g.
 `model=settings.MODEL_NAME`), the detector cannot judge it statically and
 skips that check rather than guessing.
+
+### Scope relative to the research taxonomy
+
+The two papers in `sdp_lab_tools/materials` provide the research context for
+this implementation. The earlier specification defines the same five smells
+listed here. The later taxonomy expands the catalog to nine and refines the
+categories and effects. It adds concerns such as reasoning-effort
+configuration, oversized visual inputs, overspecified sampling parameters,
+and weak request identity/observability.
+
+This repository intentionally implements only the original five. In
+particular, **UMM currently checks token-output bounds at the call site**; the
+papers also recommend bounding request timeouts, retries, and monitoring input
+tokens. Those operational controls are useful production requirements, but
+they are not findings emitted by this version of `scent-llm`.
+
+The research tools use a richer static observation model than this small
+reference implementation. `scent-llm` analyzes literal keyword arguments and
+known call-shape suffixes in one Python file. It can therefore miss:
+
+- an SDK call hidden behind a custom wrapper;
+- a model, messages list, or generation setting loaded indirectly;
+- provider-specific semantics that are not visible in the call syntax;
+- newer smells outside the five-detector catalog.
+
+Treat a clean report as “no matching evidence was found,” not as proof that
+an integration is production-safe. Pair static analysis with provider
+documentation, runtime limits, tests, and monitoring.
 
 ## 6. Fixing each smell
 
@@ -308,3 +516,39 @@ deliberately smelly call, zero findings on a clean call, Ollama's
 `name:tag` convention and system message both being recognized as
 already-fixed, a non-LLM call being ignored entirely, and a syntax error
 returning no findings instead of crashing.
+
+Run from `sdp_lab_tools/scent-llm`. On PowerShell, the same command is:
+
+```powershell
+Set-Location .\sdp_lab_tools\scent-llm
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+The configuration tests exercise the precedence contract with an isolated
+temporary TOML file and environment variables. For a manual end-to-end smoke
+test:
+
+```powershell
+python -m scent_llm.cli analyze examples\smelly_example.py --json
+python -m scent_llm.cli sandbox examples\smelly_example.py --language python --no-docker
+python -m scent_llm.cli diagram sequence
+```
+
+## 10. Learning path
+
+Read the tool in this order:
+
+1. Run `analyze` against `examples/smelly_example.py` and compare each finding
+   with the five smell definitions in §5.
+2. Run `sandbox` and observe the difference between Docker isolation and the
+   subprocess fallback. Never treat the fallback as a security boundary.
+3. Read `ast_analyzer.py` to understand why analysis is syntax-based and why
+   custom wrappers may not be discovered.
+4. Read `detectors.py` and `refactor.py` together: detection explains the
+   evidence; refactoring explains the remediation.
+5. Read `config.py` and `llm_client.py` to connect resolved settings to the
+   actual provider payload.
+6. Use `diagram sequence` to verify the complete generate/analyze flow.
+
+This separation is intentional: configuration, provider transport, discovery,
+rules, and presentation can be tested or changed independently.
