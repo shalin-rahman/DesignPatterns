@@ -1,4 +1,4 @@
-# The GoF Dessign Patterns — Java, Through One Restaurant
+# Part 1:  GoF Dessign Patterns — Story of a Restaurant
 
 **Creational — 5** 
 
@@ -5472,7 +5472,7 @@ The next useful step is to take all **23 patterns and build one realistic Java 1
 
 
 
-# DesignPatterns and Scent Lab
+# Part 2: Design Patterns and Code refactoring Lab
 
 This repository contains teaching material and working tools for studying
 design patterns, code smells, static analysis, and LLM-integrating software.
