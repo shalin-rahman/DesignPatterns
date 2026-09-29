@@ -1,5 +1,8 @@
 # Part 1:  GoF Dessign Patterns — Story of a Restaurant
 
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/eaea9d08-135b-48c1-a593-9a3033dfbdb5" />
+
+
 **Creational — 5** 
 
 1. Singleton
@@ -8,6 +11,7 @@
 4. Builder
 5. Prototype
 
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/5b20ac11-eee5-4155-961d-2b613b264741" />
 
 
 Let's build the understanding from the ground up.
