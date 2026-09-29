@@ -1,9 +1,9 @@
-# Part 1:  GoF Dessign Patterns — Story of a Restaurant
+# GoF Dessign Patterns — Story of a Restaurant
 
 <img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/eaea9d08-135b-48c1-a593-9a3033dfbdb5" />
 
 
-**Creational — 5** 
+# Part 1: Creational — 5
 
 1. Singleton
 2. Factory
@@ -2565,6 +2565,9 @@ That order also lets later patterns reuse concepts you've already learned.
 
 # PART II — STRUCTURAL DESIGN PATTERNS
 
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/240bba54-fd35-4f83-8772-ff93e1549d44" />
+
+
 ## 6. Adapter Pattern
 
 ### Restaurant story
@@ -3979,6 +3982,8 @@ You can now see a major difference:
 ---
 
 # PART III — BEHAVIORAL PATTERNS
+
+<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/05b103ef-438d-4e9e-8be0-1bde0a1352be" />
 
 Now we move from:
 
@@ -5476,7 +5481,7 @@ The next useful step is to take all **23 patterns and build one realistic Java 1
 
 
 
-# Part 2: Design Patterns and Code refactoring Lab
+# Part 4: Design Patterns and Code refactoring Lab
 
 This repository contains teaching material and working tools for studying
 design patterns, code smells, static analysis, and LLM-integrating software.
