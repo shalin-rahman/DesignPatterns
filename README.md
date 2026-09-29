@@ -2499,36 +2499,36 @@ If you need to duplicate configured objects, consider **Prototype**.
 If you genuinely require one shared instance, consider **Singleton**—but in dependency-injected applications, let the DI container manage that lifecycle when possible.
 
 
-
+# Structural Patterns
 
 **Structural — 7**
 
-1. Adapter
-2. Facade
-3. Decorator
-4. Composite
-5. Proxy
-6. Bridge
-7. Flyweight
+6. Adapter
+7. Facade
+8. Decorator
+9. Composite
+10. Proxy
+11. Bridge
+12. Flyweight
 
-**Behavioral — 11**
-8. Strategy
-9. Observer
-10. Command
-11. Template Method
-12. State
-13. Chain of Responsibility
-14. Iterator
-15. Mediator
-16. Memento
-17. Visitor
-18. Interpreter
+#  Behavioral — 11**
+13. Strategy
+14. Observer
+15. Command
+16. Template Method
+17. State
+18. Chain of Responsibility
+19. Iterator
+20. Mediator
+21. Memento
+22. Visitor
+23. Interpreter
 
-For each one, I’ll use the same structure:
+For each one, we’ll use the same structure:
 
 > **WHY → PROBLEM → NAIVE CODE → PATTERN → RESTAURANT STORY → JAVA 17+ CODE → EXECUTION → CODE WALKTHROUGH → BENEFITS → TRADE-OFFS → WHEN TO USE → WHEN NOT TO USE → REAL-WORLD EXAMPLE → COMMON MISTAKES → RELATED SOLID PRINCIPLES**
 
-And I'll keep one **continuous restaurant domain** where that makes the concept clearer, then connect it to real software such as APIs, payment systems, databases, notifications, authentication, logging, UI, etc.
+And we'll keep one **continuous restaurant domain** where that makes the concept clearer, then connect it to real software such as APIs, payment systems, databases, notifications, authentication, logging, UI, etc.
 
 ### Recommended learning order
 
