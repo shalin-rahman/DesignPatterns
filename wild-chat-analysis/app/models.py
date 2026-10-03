@@ -19,6 +19,7 @@ class Smell(BaseModel):
     @field_validator("type", "reason", mode="before")
     @classmethod
     def _strip(cls, value: Any) -> Any:
+        """Trim spaces from the smell type and reason before they are checked."""
         return value.strip() if isinstance(value, str) else value
 
 

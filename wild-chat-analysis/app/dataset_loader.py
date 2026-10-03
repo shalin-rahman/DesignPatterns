@@ -27,6 +27,7 @@ class DatasetError(Exception):
 
 
 def is_remote(source: str) -> bool:
+    """True when the dataset source is an http(s) URL rather than a local path."""
     return source.startswith(("http://", "https://"))
 
 
@@ -86,6 +87,7 @@ def resolve_dataset(
 
 
 def count_rows(path: Path) -> int:
+    """Return the parquet row count from the file footer, without reading the data."""
     return pq.ParquetFile(path).metadata.num_rows
 
 

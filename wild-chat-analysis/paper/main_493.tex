@@ -1,0 +1,224 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{url}
+
+\begin{document}
+
+\title{How Do People Actually Prompt? Prompt Smells in 493 Real ChatGPT Requests}
+
+\author{\IEEEauthorblockN{Md Habibur Rahman}
+\IEEEauthorblockA{MIT Program, Batch 7, Institute of Information Technology\\
+Email: shalin.rahman@gmail.com}}
+
+\maketitle
+
+\begin{abstract}
+People write prompts every day, but we know little about how well they write them
+outside the lab. We took 493 English user prompts from WildChat, a public log of
+real ChatGPT conversations, and asked an LLM to label each one with ten
+\emph{prompt smells}: signs that a request is hard to answer well. Seven in ten
+prompts (71.4\%) had at least one smell. Missing context was by far the most common
+problem (58.4\%), followed by an unstated output format (18.7\%) and references
+such as ``this'' or ``it'' that point to nothing in the prompt (16.6\%). Smells
+were most frequent at the two ends of the length scale. Very short prompts were
+mostly vague, while very long prompts tended to be bloated or to set rules that
+clash. We release the labeled data and the tool so others can check and extend
+the results.
+\end{abstract}
+
+\begin{IEEEkeywords}
+prompt engineering, prompt smells, large language models, WildChat, empirical study
+\end{IEEEkeywords}
+
+\section{Introduction}
+Most advice on writing prompts comes from guides and from lab studies with set tasks.
+We know much less about how people write prompts when nobody is watching.
+WildChat~\cite{wildchat} closes part of that gap. It holds about a million real
+conversations that users had with ChatGPT in exchange for free access.
+
+In code, a \emph{smell} is a sign that something may be wrong, even if the program
+still runs~\cite{fowler}. We borrow the idea for prompts. A prompt smell is a
+pattern that makes a request harder for a model to answer well, such as a missing
+goal, an unclear ``it'', or two rules that cannot both hold.
+
+We ask two questions.
+\textbf{RQ1:} How common are prompt smells in real English prompts, and which ones
+come up most?
+\textbf{RQ2:} Do smell rates change with prompt length?
+
+This short paper reports early results from an ongoing study. Our contributions
+are (1)~a catalog of ten prompt smells with plain definitions, (2)~smell rates for
+493 real prompts, broken down by length, and (3)~an open tool and labeled data set
+that anyone can rerun.
+
+\section{Related Work}
+White et al.~\cite{white} collect prompt patterns that work, and the Prompt
+Report~\cite{promptreport} surveys prompting methods. Both describe what good
+prompts look like rather than what users really write. Zamfirescu-Pereira
+et al.~\cite{johnny} watched non-experts write prompts and found they often
+give up after one failed try and lean on human-style instructions. Our study looks
+at the same problem at a larger scale, using logs instead of a lab. We use an
+LLM as the labeler, following the LLM-as-a-judge line of work~\cite{judge}.
+
+\section{Method}
+\subsection{Data and sampling}
+We used one of the six training shards of WildChat (\texttt{train-00003-of-00006},
+88,238 conversations). To avoid taking only the earliest conversations in the
+file, we kept a conversation when a hash of its id fell in the lowest 1\%. This
+gives a fixed, repeatable sample spread across the whole shard. From it we took
+every user turn tagged as English that was not empty, 1,003 prompts in all.
+The labeler works through them in file order. This paper covers the first 493
+prompts it labeled. They come from 238 conversations held between 2 and 15 July
+2023, and every one of them was sent to GPT-3.5-Turbo. The median prompt is 139
+characters long. Labeling of the remaining prompts is still running.
+
+\subsection{Smell catalog}
+We used ten smells, shown in Table~\ref{tab:freq}. They cover missing context
+(vague prompts, unclear references, no stated output format), structure (one
+prompt asking for many things, bloat, repetition), contradictions (conflicting
+constraints), and tone (excess persona, loaded framing, wrong register).
+
+\subsection{LLM labeling}
+Each prompt was sent on its own to \texttt{gpt-oss-120b}~\cite{gptoss} through
+the Groq API at temperature 0. The instructions list the ten smells with a short
+definition, mark the prompt with fixed start and end markers, and say whether the
+prompt is the first turn or a follow-up, so that a short follow-up such as
+``make it shorter'' is not marked vague just because it leans on earlier turns.
+The model had to return JSON with a smell name and a one-sentence reason for each
+smell found. We checked every answer against a schema and asked again, up to three
+attempts in all, when it did not fit. Close spellings of a smell name were mapped
+to the catalog name. Prompts longer than 12,000 characters were cut, and the model
+was told so. Prompts that still failed were logged and retried in a later pass;
+the 493 prompts here are those with a valid label.
+
+\section{Results}
+\subsection{RQ1: How common are smells?}
+Of the 493 prompts, 352 (71.4\%) had at least one smell and 141 (28.6\%) had none.
+166 prompts had one smell, 133 had two, and 53 had three or more. Across all
+prompts the mean was 1.25 smells, or 1.76 among prompts with any smell.
+
+Table~\ref{tab:freq} shows how often each smell appeared. Missing context led by a
+wide margin: it was found in 58.4\% of prompts, more than the next three smells
+put together. Format ambiguity (18.7\%) and ambiguous references (16.6\%) came
+next. Tone problems were rare. Loaded framing and excess persona each showed up in
+about 2\% of prompts, and the model never flagged a formality mismatch. The
+labeler was allowed to invent new smell names but did not do so.
+
+\begin{table}[t]
+\caption{Prompts with each smell ($n=493$). A prompt can have several.}
+\label{tab:freq}
+\centering
+\begin{tabular}{lrr}
+\toprule
+Smell & Prompts & \% \\
+\midrule
+Vague / Missing Context & 288 & 58.4 \\
+Format Ambiguity & 92 & 18.7 \\
+Ambiguous References & 82 & 16.6 \\
+Prompt Bloat / Convoluted Prompt & 45 & 9.1 \\
+Overloaded Prompt & 31 & 6.3 \\
+Conflicting Constraints & 31 & 6.3 \\
+Unnecessary Repetition & 28 & 5.7 \\
+Bias / Loaded Framing & 11 & 2.2 \\
+Irrelevant / Excessive Persona & 10 & 2.0 \\
+Formality / Audience Mismatch & 0 & 0.0 \\
+\midrule
+Any smell & 352 & 71.4 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Smells tended to come in pairs. Of the 82 prompts with an ambiguous reference, 78
+were also marked vague, and 62 prompts had both a vague goal and an unclear format.
+Of the 31 overloaded prompts, 22 were also bloated.
+
+\subsection{RQ2: Does length matter?}
+Table~\ref{tab:len} splits prompts by length. The pattern is U-shaped. Prompts
+under 50 characters had a high smell rate (81.3\%), the rate fell to 61.2\% for
+prompts of 200--999 characters, and it rose again to 82.6\% for prompts of 1,000
+characters or more. The two ends fail in different ways. Among short prompts,
+80.2\% were vague and 27.5\% had an ambiguous reference. Among long prompts the
+mix was wider: 36.0\% were bloated, 33.7\% vague, 30.2\% had conflicting
+constraints and 26.7\% left the format unclear. Long prompts also carried the
+most smells each (1.85 on average).
+
+\begin{table}[t]
+\caption{Smell rate by prompt length in characters.}
+\label{tab:len}
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Length & Prompts & With smell (\%) & Mean smells \\
+\midrule
+$<$ 50 & 91 & 81.3 & 1.16 \\
+50--199 & 195 & 68.2 & 1.12 \\
+200--999 & 121 & 61.2 & 1.11 \\
+$\geq$ 1,000 & 86 & 82.6 & 1.85 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+The main lesson is simple: most real prompts do not say enough. People seem to
+write to ChatGPT the way they would talk to a colleague who already knows the
+task, leaving out the goal, the audience or the shape of the answer. The pairing
+of ambiguous references with vague prompts fits this view. A user writes ``fix
+this'' and assumes the model can see what ``this'' is.
+
+Length is not a fix in itself. Writing more helps up to a point, but very long
+prompts bring their own problems. They bury the request, repeat it, or set rules
+that pull against each other. Mid-length prompts, a few sentences with a clear
+goal, had the lowest smell rate.
+
+For tool builders, this suggests that a light check before sending, such as
+asking ``what format do you want?'' or pointing out an ``it'' with nothing to
+refer to, could catch many problems. For people who teach prompting, the gains
+are likely to come from basics, such as stating the goal and the expected output,
+rather than from advanced tricks.
+
+\section{Threats to Validity}
+\textbf{Labels.} The labels come from one LLM and were not checked by people.
+The model may be too strict or too lenient, and we did not measure agreement with
+human raters. The counts should be read as estimates.
+\textbf{Sample.} We used one shard, a 1\% sample and English only, and this
+paper covers only the first 493 of 1,003 sampled prompts. These come from two
+weeks in July 2023 and were all sent to GPT-3.5-Turbo, so we cannot compare
+models yet. WildChat language tags are sometimes wrong; we saw a few Chinese
+prompts tagged as English. WildChat users chose to share their chats for free
+access, so they may not represent all ChatGPT users.
+\textbf{Context.} Each prompt was judged alone, with only a first-turn or follow-up
+flag. A prompt that looks vague alone may be clear in its chat.
+
+\section{Conclusion}
+In 493 real ChatGPT prompts, seven in ten showed at least one prompt smell, and
+missing context was the most common by far. Short prompts tend to be vague, and
+very long ones tend to be tangled. Next we will finish labeling all 1,003 prompts,
+compare models, have people label a subset to check the LLM labels, and test
+whether fixing a smell leads to better answers.
+
+\section*{Data and Code Availability}
+The labeled data (\texttt{wildchat\_493\_smells.json}), the summary statistics
+and the analysis tool are archived on Zenodo at
+\url{https://doi.org/10.5281/zenodo.XXXXXXX}. The prompts come from WildChat and
+are shared under its ODC-BY license.
+
+\begin{thebibliography}{9}
+\bibitem{wildchat} W.~Zhao, X.~Ren, J.~Hessel, C.~Cardie, Y.~Choi, and Y.~Deng,
+``WildChat: 1M ChatGPT interaction logs in the wild,'' in \emph{Proc. ICLR}, 2024.
+\bibitem{fowler} M.~Fowler, \emph{Refactoring: Improving the Design of Existing
+Code}. Addison-Wesley, 1999.
+\bibitem{white} J.~White \emph{et al.}, ``A prompt pattern catalog to enhance
+prompt engineering with ChatGPT,'' arXiv:2302.11382, 2023.
+\bibitem{promptreport} S.~Schulhoff \emph{et al.}, ``The prompt report: A
+systematic survey of prompting techniques,'' arXiv:2406.06608, 2024.
+\bibitem{johnny} J.~D. Zamfirescu-Pereira, R.~Y. Wong, B.~Hartmann, and Q.~Yang,
+``Why Johnny can't prompt: How non-AI experts try (and fail) to design LLM
+prompts,'' in \emph{Proc. CHI}, 2023.
+\bibitem{judge} L.~Zheng \emph{et al.}, ``Judging LLM-as-a-judge with MT-Bench and
+Chatbot Arena,'' in \emph{Proc. NeurIPS Datasets and Benchmarks}, 2023.
+\bibitem{gptoss} OpenAI, ``gpt-oss-120b \& gpt-oss-20b model card,''
+arXiv:2508.10925, 2025.
+\end{thebibliography}
+
+\end{document}

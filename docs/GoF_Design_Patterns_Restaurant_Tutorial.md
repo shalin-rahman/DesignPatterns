@@ -80,6 +80,36 @@ The five patterns solve **different creation problems**.
 
 # 1. Singleton
 
+**At a glance**
+
+Singleton makes sure a class has only one object and gives the whole program one shared way to reach it.
+
+**Key components**
+
+- **Singleton class**: `KitchenManager`: holds the single instance and hides its constructor.
+- **Static access method**: `KitchenManager.getInstance()`: creates the object the first time, then returns the same one.
+- **Client**: `RestaurantService`: asks for the manager instead of calling `new`.
+
+**Examples**
+
+- **Restaurant**: A restaurant has one kitchen manager. Every waiter who asks "who runs the kitchen?" gets the same person.
+- **Common software**: A logger or a configuration object that the whole app reads from one place.
+
+**Pros**
+
+- Only one instance exists, so shared state stays consistent.
+- The object is created only when first needed (lazy loading).
+- Gives one global access point.
+
+**Cons**
+
+- It is global state in disguise, so code becomes tightly coupled to it.
+- Hard to replace with a fake in unit tests.
+- Needs care with threads (see the Holder version).
+
+---
+
+
 ## Restaurant story
 
 You open the restaurant.
@@ -362,6 +392,36 @@ Those are very different statements.
 
 # 2. Factory Method
 
+**At a glance**
+
+Factory Method lets a parent class define the steps of creating an object, while subclasses decide which concrete class to create.
+
+**Key components**
+
+- **Product**: `Chef`: the interface every chef follows.
+- **Concrete Products**: `ItalianChef`, `BengaliChef`: the real chefs.
+- **Creator**: abstract `Restaurant`: declares `createChef()` and uses the chef it gets back.
+- **Concrete Creators**: `ItalianRestaurant`, `BengaliRestaurant`: each overrides `createChef()` to hire its own chef.
+
+**Examples**
+
+- **Restaurant**: The restaurant knows how to serve an order. Each branch decides which chef it hires.
+- **Common software**: A document editor where `Application.createDocument()` returns a `TextDocument` or a `SpreadsheetDocument`, depending on the app subclass.
+
+**Pros**
+
+- The client code depends on `Chef`, not on concrete chef classes.
+- A new cuisine is a new subclass. Old code stays unchanged (Open/Closed).
+- Creation code lives in one place per branch.
+
+**Cons**
+
+- One new creator subclass for every new product type.
+- More classes than a plain `new` call for simple cases.
+
+---
+
+
 Now the restaurant grows.
 
 You offer:
@@ -629,6 +689,37 @@ abstract Creator
 ---
 
 # 3. Abstract Factory
+
+**At a glance**
+
+Abstract Factory gives you an interface for creating families of related objects without naming their concrete classes.
+
+**Key components**
+
+- **Abstract Factory**: `RestaurantFactory`: declares `createChef()`, `createOven()`, `createMenu()`.
+- **Concrete Factories**: `ItalianRestaurantFactory`, `BengaliRestaurantFactory`: each builds one matching family.
+- **Abstract Products**: `Chef`, `Oven`, `Menu`: one interface per kind of product.
+- **Concrete Products**: `ItalianChef`, `ItalianOven`, `ItalianMenu` and `BengaliChef`, `BengaliOven`, `BengaliMenu`.
+- **Client**: `Restaurant`: gets a factory and uses only the abstract product types.
+
+**Examples**
+
+- **Restaurant**: An Italian branch must never end up with a Bengali oven. Pick the Italian factory once, and every chef, oven and menu it makes will match.
+- **Common software**: A cross-platform UI toolkit. `GUIFactory` has `createButton()` and `createCheckbox()`. `WindowsFactory` makes `WindowsButton` and `WindowsCheckbox`; `MacOSFactory` makes `MacOSButton` and `MacOSCheckbox`. The app code never sees a Windows or Mac class.
+
+**Pros**
+
+- Products from one factory always fit together.
+- Client code is kept away from concrete classes.
+- A new family (for example `ChineseRestaurantFactory`) is added without changing the client (Open/Closed).
+
+**Cons**
+
+- Many interfaces and classes to write.
+- Adding a new kind of product (say `Dessert`) means changing the abstract factory and every concrete factory.
+
+---
+
 
 Now our restaurant becomes more complicated.
 
@@ -1028,6 +1119,35 @@ It's that the objects form a **coherent family**.
 
 # 4. Builder
 
+**At a glance**
+
+Builder creates a complex object step by step, so you set only the parts you need and get a finished object at the end.
+
+**Key components**
+
+- **Product**: `Pizza`: an immutable object with many optional parts.
+- **Builder**: `Pizza.Builder`: has one method per option (`size()`, `crust()`, `cheese()`, `olives()`) and a final `build()`.
+- **Client**: the order code: chains the builder calls it needs, then calls `build()`.
+
+**Examples**
+
+- **Restaurant**: A customer orders a large pizza with extra cheese and no olives. The order is built one choice at a time, and the pizza is made once at the end.
+- **Common software**: `StringBuilder` in Java, or an HTTP request builder: `HttpRequest.newBuilder().uri(...).header(...).build()`.
+
+**Pros**
+
+- No long constructors with many `null` arguments.
+- Code reads like the order itself.
+- The finished object can be immutable and checked in `build()`.
+
+**Cons**
+
+- One extra class per product.
+- Too much for objects with only two or three fields.
+
+---
+
+
 Back to the restaurant.
 
 A customer wants:
@@ -1336,6 +1456,35 @@ Builder is useful when construction has **enough complexity to justify it**.
 ---
 
 # 5. Prototype
+
+**At a glance**
+
+Prototype creates new objects by copying an existing object instead of building them from scratch.
+
+**Key components**
+
+- **Prototype**: `Cloneable` with `clone()`: the copy operation.
+- **Concrete Prototype**: `Pizza`: knows how to copy itself (shallow or deep copy).
+- **Client**: the order code: clones a ready pizza and changes a few fields.
+
+**Examples**
+
+- **Restaurant**: The kitchen keeps a ready "Margherita template". For each order it copies the template and only changes the size or toppings.
+- **Common software**: Copying a shape in a drawing app (Ctrl+C, Ctrl+V), or cloning a preset game character.
+
+**Pros**
+
+- Fast when building an object is costly.
+- No need to know the concrete class to make a copy.
+- Preset objects can serve as templates.
+
+**Cons**
+
+- Deep copy is easy to get wrong when objects hold lists or other objects.
+- Java's `clone()` has awkward rules (`Cloneable`, checked exception).
+
+---
+
 
 Now imagine your restaurant has pizza templates.
 
@@ -2570,6 +2719,36 @@ That order also lets later patterns reuse concepts you've already learned.
 
 ## 6. Adapter Pattern
 
+**At a glance**
+
+Adapter lets two classes with incompatible interfaces work together by wrapping one of them.
+
+**Key components**
+
+- **Target**: `PaymentService`: the interface the restaurant already uses.
+- **Adaptee**: `BkashService`: the outside service with its own method names.
+- **Adapter**: `BkashPaymentAdapter`: implements `PaymentService` and calls `BkashService` inside.
+- **Client**: the checkout code: talks only to `PaymentService`.
+
+**Examples**
+
+- **Restaurant**: The restaurant's checkout expects `pay(amount)`. bKash offers `makePayment(currency, amount)`. The adapter translates one call into the other.
+- **Common software**: A power plug adapter, or wrapping an old XML API so new code can call it through a JSON-style interface.
+
+**Pros**
+
+- Reuses existing classes without changing them.
+- Keeps translation code in one place (Single Responsibility).
+- New providers can be added with new adapters.
+
+**Cons**
+
+- One more layer of classes.
+- Sometimes simpler to change the service itself, if you own it.
+
+---
+
+
 ### Restaurant story
 
 Imagine your restaurant already works with:
@@ -2850,6 +3029,35 @@ CONVERT/TRANSLATE INTERFACE
 
 # 7. Facade Pattern
 
+**At a glance**
+
+Facade gives a simple front door to a complex set of classes.
+
+**Key components**
+
+- **Facade**: `RestaurantFacade`: offers one method such as `placeOrder()`.
+- **Subsystem classes**: `InventoryService`, `PaymentService`, `KitchenService`, `NotificationService`: do the real work.
+- **Client**: the app or waiter code: calls the facade only.
+
+**Examples**
+
+- **Restaurant**: A customer just says "one burger, please". The facade checks stock, takes payment, tells the kitchen and sends a notification.
+- **Common software**: A `VideoConverter.convert(file, format)` method that hides codecs, buffers and audio mixing.
+
+**Pros**
+
+- Client code becomes short and easy to read.
+- Client is kept away from subsystem details.
+- Subsystems can change without touching clients.
+
+**Cons**
+
+- The facade can grow into a "god object" that does too much.
+- Can hide useful features if clients are forced to use only the facade.
+
+---
+
+
 Now imagine your restaurant's kitchen has become complicated.
 
 To place an order you need:
@@ -3032,6 +3240,36 @@ Facade:
 ---
 
 # 8. Decorator Pattern
+
+**At a glance**
+
+Decorator adds new behavior to an object at runtime by wrapping it in another object with the same interface.
+
+**Key components**
+
+- **Component**: `Coffee`: the common interface (`cost()`, `description()`).
+- **Concrete Component**: `SimpleCoffee`: the plain coffee.
+- **Base Decorator**: `CoffeeDecorator`: holds a `Coffee` and passes calls to it.
+- **Concrete Decorators**: `MilkDecorator`, `CaramelDecorator`: add their own price and name.
+
+**Examples**
+
+- **Restaurant**: A plain coffee wrapped with milk, then caramel. Each wrapper adds to the price. No `CoffeeWithMilkAndCaramel` class is needed.
+- **Common software**: Java I/O: `new BufferedReader(new InputStreamReader(new FileInputStream(f)))`.
+
+**Pros**
+
+- Mix and match extras at runtime.
+- Avoids a class explosion of every combination.
+- Each decorator does one job (Single Responsibility).
+
+**Cons**
+
+- Many small wrapper objects can be hard to debug.
+- Order of wrapping can matter and is easy to get wrong.
+
+---
+
 
 Now suppose your restaurant sells coffee.
 
@@ -3248,6 +3486,36 @@ Each layer adds behavior.
 
 # 9. Composite Pattern
 
+**At a glance**
+
+Composite lets you treat single objects and groups of objects the same way by putting them in a tree.
+
+**Key components**
+
+- **Component**: `MenuItem`: the common interface (for example `print()` or `getPrice()`).
+- **Leaf**: `FoodItem`: a single dish with no children.
+- **Composite**: `MenuGroup`: holds a list of `MenuItem`s, which can be dishes or other groups.
+- **Client**: the menu printer: calls `print()` on the top group only.
+
+**Examples**
+
+- **Restaurant**: The full menu holds "Lunch" and "Drinks"; "Lunch" holds dishes. Printing the whole menu and printing one dish use the same call.
+- **Common software**: Folders and files in a file system, or nested panels and buttons in a UI.
+
+**Pros**
+
+- Client code does not need `if (isGroup)` checks.
+- Easy to add new kinds of items.
+- Natural fit for tree data.
+
+**Cons**
+
+- The common interface can become too general (a leaf may have an `add()` it cannot support).
+- Harder to limit what a group may contain.
+
+---
+
+
 Restaurant story:
 
 A restaurant menu can contain:
@@ -3448,6 +3716,35 @@ Employee
 
 # 10. Proxy Pattern
 
+**At a glance**
+
+Proxy puts a stand-in object in front of a real one to control access to it.
+
+**Key components**
+
+- **Subject**: `Kitchen`: the interface both share.
+- **Real Subject**: `RealKitchen`: does the real cooking.
+- **Proxy**: `KitchenProxy`: checks, delays, caches or logs before passing the call on.
+- **Client**: the waiter code: uses `Kitchen` and cannot tell the proxy apart.
+
+**Examples**
+
+- **Restaurant**: Customers cannot walk into the kitchen. The proxy checks the order (for example, is the kitchen open?) and only then forwards it.
+- **Common software**: A lazy-loading image proxy, an access-control check before a service, or a remote API stub.
+
+**Pros**
+
+- Adds control (security, caching, lazy loading) without changing the real class.
+- Client code stays the same.
+
+**Cons**
+
+- One more layer, so calls can be a bit slower.
+- Can hide delays that the client should know about.
+
+---
+
+
 Now imagine your restaurant has an expensive service:
 
 ```java
@@ -3616,6 +3913,36 @@ Logging proxies
 ---
 
 # 11. Bridge Pattern
+
+**At a glance**
+
+Bridge splits a class into two separate hierarchies, what it is and how it does it, so both can change on their own.
+
+**Key components**
+
+- **Abstraction**: abstract `Notification`: holds a `NotificationSender`.
+- **Refined Abstraction**: `OrderNotification`: one kind of message.
+- **Implementor**: `NotificationSender`: the interface for sending.
+- **Concrete Implementors**: `EmailSender`, `SmsSender`: the real channels.
+
+**Examples**
+
+- **Restaurant**: "Order ready" can go by email or SMS. New message types and new channels are added on separate sides, with no `OrderEmailNotification`, `OrderSmsNotification`, and so on.
+- **Common software**: A remote control (abstraction) that works with any TV brand (implementation), or JDBC drivers under one `Connection` API.
+
+**Pros**
+
+- Avoids a class for every type-and-channel combination.
+- Each side can grow on its own (Open/Closed).
+- Implementation can be chosen at runtime.
+
+**Cons**
+
+- Harder to understand at first glance.
+- Overkill if there is only one implementation.
+
+---
+
 
 This one is harder, so let's slow down.
 
@@ -3809,6 +4136,35 @@ This is one of the most important structural patterns for architecture.
 
 # 12. Flyweight Pattern
 
+**At a glance**
+
+Flyweight saves memory by sharing the parts of objects that many of them have in common.
+
+**Key components**
+
+- **Flyweight**: final `CustomerProfile`: the shared, immutable part (intrinsic state: country, language, currency).
+- **Flyweight Factory**: `CustomerProfileFactory`: returns an existing profile or creates it once.
+- **Extrinsic state**: data unique to each customer, such as name or order list, kept outside the flyweight.
+- **Client**: customer objects: hold a reference to a shared profile.
+
+**Examples**
+
+- **Restaurant**: 100,000 customers from Bangladesh all point to one "Bangladesh, Bengali, BDT" profile instead of 100,000 copies.
+- **Common software**: Characters in a text editor sharing font data, or trees in a game sharing one mesh and texture.
+
+**Pros**
+
+- Large memory savings when many objects repeat the same data.
+- Shared objects are immutable, so they are safe to share.
+
+**Cons**
+
+- Code is more complex: state is split into two parts.
+- Gains are small unless you have very many similar objects.
+
+---
+
+
 Imagine a restaurant with:
 
 ```text
@@ -3997,6 +4353,35 @@ to:
 
 # 13. Strategy Pattern
 
+**At a glance**
+
+Strategy puts each version of an algorithm in its own class so you can swap them at runtime.
+
+**Key components**
+
+- **Strategy**: `DeliveryStrategy`: the common interface with `calculateFee(distance)`.
+- **Concrete Strategies**: `NormalDelivery`, `ExpressDelivery`: different ways to deliver.
+- **Context**: `DeliveryService`: holds a strategy and uses it.
+
+**Examples**
+
+- **Restaurant**: The customer picks normal or express delivery. The service just calls `calculateFee()` on whichever was chosen.
+- **Common software**: Payment methods in a checkout, or sorting with different `Comparator`s in Java.
+
+**Pros**
+
+- Removes long `if/else` or `switch` blocks.
+- New strategies are added without touching the context (Open/Closed).
+- Each algorithm can be tested on its own.
+
+**Cons**
+
+- The client must know the strategies to choose one.
+- Overkill for one or two simple variations.
+
+---
+
+
 This is one of the most useful patterns in everyday application development.
 
 Restaurant:
@@ -4121,6 +4506,35 @@ How should the operation be performed?
 
 # 14. Observer Pattern
 
+**At a glance**
+
+Observer lets one object notify a list of other objects automatically when its state changes.
+
+**Key components**
+
+- **Subject**: `Order`: keeps a list of observers and notifies them.
+- **Observer**: `OrderObserver`: the interface with an `update()` method.
+- **Concrete Observers**: `Kitchen`, `Customer`: react when the order changes.
+
+**Examples**
+
+- **Restaurant**: When an order is placed, the kitchen starts cooking and the customer gets a message, without `Order` knowing their details.
+- **Common software**: Event listeners on a UI button, or subscribers to a newsletter or message topic.
+
+**Pros**
+
+- Subject and observers are loosely coupled.
+- New observers can be added at runtime (Open/Closed).
+
+**Cons**
+
+- Notification order is not guaranteed.
+- Forgotten subscriptions can cause memory leaks.
+- Long chains of updates can be hard to trace.
+
+---
+
+
 Restaurant example:
 
 When an order status changes:
@@ -4236,6 +4650,35 @@ Spring application events are another example of the same broad idea.
 ---
 
 # 15. Command Pattern
+
+**At a glance**
+
+Command turns a request into an object, so it can be stored, queued, logged or undone.
+
+**Key components**
+
+- **Command**: `Command`: interface with `execute()`.
+- **Concrete Command**: `PrepareOrderCommand`: knows what to ask the kitchen to do.
+- **Receiver**: `Kitchen`: does the actual work.
+- **Invoker**: `Waiter`: takes commands and runs them, without knowing how cooking works.
+
+**Examples**
+
+- **Restaurant**: The waiter writes the order on a ticket (the command) and hands it in. The ticket can wait in a queue, be cancelled or be repeated.
+- **Common software**: Undo/redo in a text editor, or menu buttons and keyboard shortcuts that trigger the same action.
+
+**Pros**
+
+- Separates who asks from who does the work.
+- Supports undo, queues and logs.
+- Commands can be combined into macros.
+
+**Cons**
+
+- One class per action, so many small classes.
+
+---
+
 
 Suppose restaurant operations include:
 
@@ -4361,6 +4804,33 @@ CQRS
 ---
 
 # 16. Template Method
+
+**At a glance**
+
+Template Method defines the steps of an algorithm in a parent class and lets subclasses fill in some of the steps.
+
+**Key components**
+
+- **Abstract Class**: abstract `Meal`: holds the fixed `prepare()` flow and the abstract steps.
+- **Concrete Classes**: `ItalianMeal`, `BengaliMeal`: fill in the steps such as cooking and serving.
+
+**Examples**
+
+- **Restaurant**: Every meal follows prepare ingredients, cook, serve. Italian and Bengali meals only change the cooking and serving steps.
+- **Common software**: A data importer whose `run()` always does open, read, parse, close, while subclasses define `parse()` for CSV or JSON.
+
+**Pros**
+
+- The common flow is written once.
+- Subclasses cannot break the order of steps.
+
+**Cons**
+
+- Based on inheritance, so it is less flexible than Strategy.
+- Hard to follow when the template has many steps and hooks.
+
+---
+
 
 Restaurant has a standard meal preparation process:
 
@@ -4489,6 +4959,35 @@ How does the overall algorithm execute?
 
 # 17. State Pattern
 
+**At a glance**
+
+State lets an object change its behavior when its internal state changes, by moving each state's behavior into its own class.
+
+**Key components**
+
+- **Context**: `Order`: holds the current state and passes calls to it.
+- **State**: `OrderState`: the interface for actions such as `next()`.
+- **Concrete States**: `NewState`, then `PaidState`, `PreparingState`, `ReadyState`: each knows what to do and which state comes next.
+
+**Examples**
+
+- **Restaurant**: An order moves from new to paid to preparing to ready to delivered. Each stage decides what happens next, with no big `if (status == ...)` blocks.
+- **Common software**: A media player (playing, paused, stopped), or a TCP connection (listening, established, closed).
+
+**Pros**
+
+- Removes large state `switch` blocks.
+- Each state's rules live in one class.
+- New states are easy to add.
+
+**Cons**
+
+- Many small classes for simple state machines.
+- Transitions are spread across classes.
+
+---
+
+
 Imagine an order.
 
 Its behavior depends on state:
@@ -4612,6 +5111,34 @@ The object's behavior changes because its **state changes**.
 ---
 
 # 18. Chain of Responsibility
+
+**At a glance**
+
+Chain of Responsibility passes a request along a chain of handlers until one of them handles it.
+
+**Key components**
+
+- **Handler**: abstract `ComplaintHandler`: holds the next handler and a `handle()` method.
+- **Concrete Handlers**: `Waiter`, `Manager`: each handles what it can and passes the rest on.
+- **Client**: the customer complaint code: sends to the first handler only.
+
+**Examples**
+
+- **Restaurant**: A small complaint is fixed by the waiter. A bigger one goes up to the manager.
+- **Common software**: Servlet filters or middleware in a web framework, or support tickets moving from level 1 to level 2.
+
+**Pros**
+
+- The sender does not need to know who handles the request.
+- Handlers can be added or reordered easily.
+
+**Cons**
+
+- A request may reach the end with no one handling it.
+- Long chains are hard to debug.
+
+---
+
 
 Restaurant example:
 
@@ -4764,6 +5291,36 @@ That's conceptually very close to Chain of Responsibility.
 
 # 19. Iterator
 
+**At a glance**
+
+Iterator lets you walk through a collection one item at a time without knowing how it is stored.
+
+**Key components**
+
+- **Iterator**: `Iterator<MenuItem>`: has `hasNext()` and `next()`.
+- **Aggregate**: the menu: offers `iterator()`.
+- **Concrete storage**: `ArrayList`, `LinkedList`, a tree or a database cursor: hidden from the client.
+- **Client**: the code that prints the menu: just loops.
+
+**Examples**
+
+- **Restaurant**: The customer reads the menu item by item. They do not care whether it is stored as a list, a tree or rows in a database.
+- **Common software**: Java's `for-each` loop over any `Iterable`, or paging through search results.
+
+**Pros**
+
+- Client code does not depend on how data is stored.
+- Several traversals can run at the same time.
+- Storage can change without changing client loops.
+
+**Cons**
+
+- Overkill for a simple array.
+- Changing the collection while iterating can fail.
+
+---
+
+
 Suppose your restaurant menu internally uses:
 
 ```java
@@ -4819,6 +5376,33 @@ is literally an implementation of this pattern.
 ---
 
 # 20. Mediator
+
+**At a glance**
+
+Mediator makes objects talk through one central object instead of talking to each other directly.
+
+**Key components**
+
+- **Mediator**: `RestaurantMediator`: the interface with `notify(sender, event)`.
+- **Concrete Mediator**: `RestaurantCoordinator`: knows all parts and decides who reacts to what.
+- **Colleagues**: chef, waiter, payment and delivery: send events to the mediator only.
+
+**Examples**
+
+- **Restaurant**: The chef does not call the waiter, payment and delivery one by one. They tell the coordinator "food ready", and the coordinator tells the right people.
+- **Common software**: An air traffic control tower, or a chat room that passes messages between users.
+
+**Pros**
+
+- Removes a tangled many-to-many web of links.
+- Parts can be reused and changed on their own.
+
+**Cons**
+
+- The mediator can become a large "god object".
+
+---
+
 
 Imagine every restaurant component directly communicates with every other component:
 
@@ -4893,6 +5477,34 @@ Application orchestration
 ---
 
 # 21. Memento
+
+**At a glance**
+
+Memento saves a snapshot of an object's state so it can be restored later, without exposing its insides.
+
+**Key components**
+
+- **Originator**: `MenuEditor`: creates snapshots and restores from them.
+- **Memento**: record `MenuMemento`: an immutable snapshot of the menu.
+- **Caretaker**: the code that keeps the history list: stores mementos but never reads their contents.
+
+**Examples**
+
+- **Restaurant**: The manager edits the menu, does not like the change and rolls back to yesterday's version.
+- **Common software**: Undo in a text editor, or save points in a game.
+
+**Pros**
+
+- Undo without breaking encapsulation.
+- The originator's code stays simple.
+
+**Cons**
+
+- Snapshots can use a lot of memory.
+- The caretaker must clean up old mementos.
+
+---
+
 
 Suppose a restaurant manager edits a menu:
 
@@ -4997,6 +5609,35 @@ Document history
 ---
 
 # 22. Visitor
+
+**At a glance**
+
+Visitor lets you add new operations to a set of classes without changing those classes.
+
+**Key components**
+
+- **Visitor**: `FoodVisitor`: one `visit()` method per food type.
+- **Concrete Visitor**: `TaxVisitor`: computes tax for each food type.
+- **Element**: `Food`: has `accept(visitor)`.
+- **Concrete Elements**: `Burger`, `Pizza`: call back the matching `visit()` method.
+
+**Examples**
+
+- **Restaurant**: A tax inspector visits each dish and applies the right tax rule. Later a discount inspector can be added without touching `Burger` or `Pizza`.
+- **Common software**: Compilers walking a syntax tree for type checking and code generation, or exporting shapes to different file formats.
+
+**Pros**
+
+- New operations are added without changing element classes (Open/Closed).
+- Related logic stays together in one visitor.
+
+**Cons**
+
+- Adding a new element type means changing every visitor.
+- Visitors may need access to the elements' private details.
+
+---
+
 
 Visitor is more advanced.
 
@@ -5140,6 +5781,35 @@ It's powerful, but considerably more complex than Strategy or Observer.
 ---
 
 # 23. Interpreter
+
+**At a glance**
+
+Interpreter represents the rules of a small language as classes, so sentences in that language can be evaluated.
+
+**Key components**
+
+- **Abstract Expression**: `Expression`: has `interpret(context)`.
+- **Terminal Expression**: `PriceExpression` or a number such as `500`: the basic parts.
+- **Non-terminal Expression**: for example `GreaterThanExpression`: combines other expressions.
+- **Context**: `MenuContext`: holds the data the expressions read, such as the item's price.
+
+**Examples**
+
+- **Restaurant**: Staff type `PRICE > 500` or `CATEGORY = PIZZA` to filter the menu. Each part of the query is an object that knows how to evaluate itself.
+- **Common software**: Regular expressions, SQL `WHERE` filters, or rule engines with simple conditions.
+
+**Pros**
+
+- Easy to add new rules as new classes.
+- The grammar is clear from the class structure.
+
+**Cons**
+
+- Grows hard to manage for large grammars; use a parser generator instead.
+- Can be slow for complex expressions.
+
+---
+
 
 This is the final GoF pattern.
 

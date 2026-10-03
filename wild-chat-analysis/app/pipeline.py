@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class RunStats:
+    """Counts for one run, logged at the end and returned to the caller."""
     records_read: int = 0
     malformed_records: int = 0
     prompts_extracted: int = 0
@@ -38,10 +39,16 @@ class Analyzer:
     """Anything with an `analyze(UserPrompt) -> AnalysisResult` method."""
 
     def analyze(self, prompt: UserPrompt) -> AnalysisResult:  # pragma: no cover
+        """Return the smells found in one prompt."""
         raise NotImplementedError
 
 
 def collect_prompts(settings: Settings, dataset_path: Path, stats: RunStats) -> list[UserPrompt]:
+    """Read the dataset and return the user prompts in the sample, without duplicates.
+
+    Keeps only conversations whose id falls in the sample fraction, and only turns in
+    the chosen language. A bad row is counted in `stats` and skipped.
+    """
     prompts: dict[str, UserPrompt] = {}
     records: Iterator[dict] = iter_records(
         dataset_path, batch_size=settings.read_batch_size, max_records=settings.max_records
@@ -68,12 +75,18 @@ def process_prompts(
     settings: Settings,
     stats: RunStats,
 ) -> None:
+    """Send the pending prompts to the analyzer on a thread pool and save each result.
+
+    Only a few prompts are queued at a time. A success goes to the checkpoint and a
+    failure to the failure log. A FatalLLMError, Ctrl+C or disk error cancels the rest.
+    """
     total = len(pending)
     queue = iter(pending)
     in_flight: dict[Future[AnalysisResult], UserPrompt] = {}
     pool = ThreadPoolExecutor(max_workers=settings.concurrency, thread_name_prefix="llm")
 
     def submit_next() -> bool:
+        """Queue the next prompt. Returns False when none are left."""
         prompt = next(queue, None)
         if prompt is None:
             return False
@@ -120,6 +133,12 @@ def run_pipeline(
     analyzer: Analyzer | None = None,
     dry_run: bool = False,
 ) -> RunStats:
+    """Run the whole job: load the dataset, pick prompts, skip ones already done, label the
+    rest and write the final JSON.
+
+    With `dry_run`, stops after counting what would be sent. The final JSON is written
+    even when the run stops early, so finished work is never lost.
+    """
     stats = RunStats()
     store = CheckpointStore(settings.checkpoint_file)
     failures = FailureLog(settings.failures_file)

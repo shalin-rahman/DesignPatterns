@@ -28,6 +28,7 @@ def in_sample(conversation_id: str, fraction: float, seed: str) -> bool:
 
 
 def format_timestamp(value: Any) -> str | None:
+    """Turn a date or datetime into ISO text. Other values become plain strings; None stays None."""
     if value is None:
         return None
     if isinstance(value, (datetime, date)):
@@ -36,6 +37,7 @@ def format_timestamp(value: Any) -> str | None:
 
 
 def _clean_str(value: Any) -> str | None:
+    """Strip a value to text. Returns None when it is None or blank."""
     if value is None:
         return None
     text = str(value).strip()
@@ -61,6 +63,7 @@ def parse_conversation(raw: Any) -> list[dict[str, Any]]:
 
 
 def _language_matches(value: Any, language: str) -> bool:
+    """True when the message language tag equals `language`, ignoring case and spaces."""
     return isinstance(value, str) and value.strip().lower() == language.strip().lower()
 
 

@@ -10,6 +10,7 @@ from app.summary import summarize
 
 
 def main() -> None:
+    """Read an output JSON file, print its summary and, with --save, write it to a file."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("output_file", type=Path)
     parser.add_argument("--save", type=Path, help="also write the summary to this JSON file")

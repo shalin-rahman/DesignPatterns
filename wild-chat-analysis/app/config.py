@@ -50,6 +50,7 @@ class ConfigError(Exception):
 
 
 class LLMSettings(BaseModel):
+    """API settings: endpoint, model, sampling, timeouts, retries and rate limit."""
     api_key: SecretStr | None = None
     base_url: str = "https://api.groq.com/openai/v1"
     model: str = "openai/gpt-oss-120b"
@@ -66,6 +67,7 @@ class LLMSettings(BaseModel):
 
 
 class Settings(BaseModel):
+    """Run settings: dataset, sampling, output paths, concurrency and logging, plus `llm`."""
     dataset_url: str = DEFAULT_DATASET_URL
     cache_dir: Path = Path("data")
     hf_token: SecretStr | None = None
@@ -87,14 +89,17 @@ class Settings(BaseModel):
 
     @property
     def checkpoint_file(self) -> Path:
+        """The checkpoint path, made from the output path: `x.json` becomes `x.checkpoint.jsonl`."""
         return self.output_file.with_suffix(".checkpoint.jsonl")
 
     @property
     def failures_file(self) -> Path:
+        """The failure log path, made from the output path: `x.json` becomes `x.failures.jsonl`."""
         return self.output_file.with_suffix(".failures.jsonl")
 
 
 def _read_yaml(config_path: Path | None) -> dict[str, Any]:
+    """Load the YAML config as a dict. No path gives {}; a missing or invalid file raises ConfigError."""
     if config_path is None:
         return {}
     if not config_path.exists():

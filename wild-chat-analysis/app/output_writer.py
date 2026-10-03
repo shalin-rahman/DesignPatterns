@@ -20,13 +20,18 @@ class CheckpointStore:
     it was analyzed successfully, so failed prompts are retried on the next run."""
 
     def __init__(self, path: Path) -> None:
+        """Point at the checkpoint file. Nothing is opened until `open()`."""
         self.path = path
         self._handle: IO[str] | None = None
 
     def reset(self) -> None:
+        """Delete the checkpoint so the next run starts from zero (used when resume is off)."""
         self.path.unlink(missing_ok=True)
 
     def _iter_lines(self) -> Iterator[dict[str, Any]]:
+        """Yield each valid checkpoint entry. Blank and broken lines, such as a half-written
+        last line after a crash, are skipped.
+        """
         if not self.path.exists():
             return
         with open(self.path, encoding="utf-8") as handle:
@@ -44,9 +49,11 @@ class CheckpointStore:
                     yield entry
 
     def load_processed_ids(self) -> set[str]:
+        """Return the ids of prompts already analyzed, so a resumed run can skip them."""
         return {entry["prompt_id"] for entry in self._iter_lines()}
 
     def iter_records(self) -> Iterator[dict[str, Any]]:
+        """Yield every output record, keeping only the first entry when a prompt id repeats."""
         seen: set[str] = set()
         for entry in self._iter_lines():
             if entry["prompt_id"] in seen:
@@ -57,6 +64,7 @@ class CheckpointStore:
                     yield record
 
     def open(self) -> None:
+        """Open the file for appending. Adds a newline first if the last line was cut short."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         needs_newline = False
         if self.path.exists() and self.path.stat().st_size > 0:
@@ -68,6 +76,7 @@ class CheckpointStore:
             self._handle.write("\n")
 
     def append(self, prompt_id: str, records: list[OutputRecord]) -> None:
+        """Write one finished prompt as one line and flush, so a crash loses at most this prompt."""
         if self._handle is None:
             raise RuntimeError("CheckpointStore is not open")
         entry = {"prompt_id": prompt_id, "records": [r.model_dump() for r in records]}
@@ -75,11 +84,13 @@ class CheckpointStore:
         self._handle.flush()
 
     def close(self) -> None:
+        """Close the file if it is open."""
         if self._handle is not None:
             self._handle.close()
             self._handle = None
 
     def __enter__(self) -> CheckpointStore:
+        """Open the store for a `with` block."""
         self.open()
         return self
 
@@ -89,6 +100,7 @@ class CheckpointStore:
         exc: BaseException | None,
         tb: TracebackType | None,
     ) -> None:
+        """Close the store when the `with` block ends, even after an error."""
         self.close()
 
 
@@ -96,14 +108,17 @@ class FailureLog:
     """JSON Lines list of prompts that failed in the current run. No prompt text is stored."""
 
     def __init__(self, path: Path) -> None:
+        """Point at the failure log and start the failure count at zero."""
         self.path = path
         self.count = 0
 
     def reset(self) -> None:
+        """Delete the old log so it lists only this run's failures."""
         self.path.unlink(missing_ok=True)
         self.count = 0
 
     def append(self, prompt_id: str, conversation_id: str, error: str) -> None:
+        """Record one failed prompt by its ids and error message, then add one to the count."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         entry = {"prompt_id": prompt_id, "conversation_id": conversation_id, "error": error}
         with open(self.path, "a", encoding="utf-8") as handle:

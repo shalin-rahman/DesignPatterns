@@ -25,17 +25,20 @@ class LLMError(Exception):
 
 
 class RetryableLLMError(LLMError):
+    """A short-lived failure (timeout, dropped connection, 5xx). The same request is sent again."""
+
     def __init__(self, message: str, retry_after: float | None = None) -> None:
+        """Keep the server's Retry-After seconds, if it sent any, for the backoff."""
         super().__init__(message)
         self.retry_after = retry_after
 
 
 class RateLimitError(RetryableLLMError):
-    pass
+    """HTTP 429: the provider's per-minute or daily limit was hit. Retried after a wait."""
 
 
 class NonRetryableLLMError(LLMError):
-    pass
+    """A 4xx error that sending the same request again will not fix. This prompt is skipped."""
 
 
 class FatalLLMError(NonRetryableLLMError):
@@ -51,11 +54,13 @@ class RateLimiter:
     """Spaces requests evenly so that at most `requests_per_minute` are started."""
 
     def __init__(self, requests_per_minute: float) -> None:
+        """Work out the gap between requests. A limit of 0 or less turns the limiter off."""
         self._interval = 60.0 / requests_per_minute if requests_per_minute > 0 else 0.0
         self._lock = threading.Lock()
         self._next_slot = 0.0
 
     def acquire(self) -> None:
+        """Block until this thread may send its next request, then book the slot after it."""
         if not self._interval:
             return
         with self._lock:
@@ -67,6 +72,7 @@ class RateLimiter:
 
 
 def _parse_retry_after(value: str | None) -> float | None:
+    """Read a Retry-After header as seconds. Returns None when it is missing or not a number."""
     if not value:
         return None
     try:
@@ -76,6 +82,7 @@ def _parse_retry_after(value: str | None) -> float | None:
 
 
 def _error_code(response: Any) -> str:
+    """Pull only the error code or type from an error body, so the prompt text is never logged."""
     try:
         error = response.json().get("error") or {}
         return str(error.get("code") or error.get("type") or "unknown error")
@@ -84,16 +91,23 @@ def _error_code(response: Any) -> str:
 
 
 def _short(text: str, limit: int = 200) -> str:
+    """Squash whitespace and cut the text to `limit` characters, for debug logs."""
     text = " ".join(text.split())
     return text if len(text) <= limit else text[:limit] + "..."
 
 
 class LLMClient:
+    """Sends chat requests to the configured API. Safe to share between worker threads."""
+
     def __init__(
         self,
         settings: LLMSettings,
         session_factory: Callable[[], requests.Session] = requests.Session,
     ) -> None:
+        """Check the API key is set and build the endpoint URL and rate limiter.
+
+        Raises ConfigError when LLM_API_KEY is missing or blank.
+        """
         if settings.api_key is None or not settings.api_key.get_secret_value().strip():
             raise ConfigError("LLM_API_KEY is not set. Add it to .env or the environment.")
         self._settings = settings
@@ -105,9 +119,11 @@ class LLMClient:
         self._limiter = RateLimiter(settings.requests_per_minute)
 
     def __repr__(self) -> str:
+        """Show the URL and model only. The API key is left out on purpose."""
         return f"LLMClient(url={self._url!r}, model={self._settings.model!r})"
 
     def _headers(self) -> dict[str, str]:
+        """Build the auth headers, plus the OpenAI organization and project when set."""
         assert self._settings.api_key is not None
         headers = {
             "Authorization": f"Bearer {self._settings.api_key.get_secret_value()}",
@@ -120,6 +136,7 @@ class LLMClient:
         return headers
 
     def _session(self) -> requests.Session:
+        """Return this thread's HTTP session, creating it on first use so connections are reused."""
         session = getattr(self._local, "session", None)
         if session is None:
             session = self._session_factory()
@@ -129,12 +146,15 @@ class LLMClient:
         return session
 
     def close(self) -> None:
+        """Close every session the worker threads opened."""
         with self._sessions_lock:
             for session in self._sessions:
                 session.close()
             self._sessions.clear()
 
     def _wait(self, retry_state: RetryCallState) -> float:
+        """Seconds to wait before the next try: exponential backoff with jitter, capped at
+        `backoff_max`, but never shorter than the server's Retry-After."""
         base = self._settings.backoff_base * (2 ** (retry_state.attempt_number - 1))
         delay = min(self._settings.backoff_max, base) + random.uniform(0, base * 0.25)
         exc = retry_state.outcome.exception() if retry_state.outcome else None
@@ -145,6 +165,7 @@ class LLMClient:
 
     @staticmethod
     def _log_retry(retry_state: RetryCallState) -> None:
+        """Log a warning before each retry, naming rate limits apart from other errors."""
         exc = retry_state.outcome.exception() if retry_state.outcome else None
         delay = retry_state.next_action.sleep if retry_state.next_action else 0.0
         if isinstance(exc, RateLimitError):
@@ -153,7 +174,11 @@ class LLMClient:
             logger.warning("Temporary API error (%s). Retrying in %.1fs...", exc, delay)
 
     def complete(self, messages: list[dict[str, str]]) -> str:
-        """Send a chat request and return the assistant text."""
+        """Send a chat request and return the assistant text.
+
+        Retryable errors are tried again up to `retry_attempts` times. Any other error,
+        or the last retryable one, is raised to the caller.
+        """
         retrying = Retrying(
             stop=stop_after_attempt(self._settings.retry_attempts + 1),
             wait=self._wait,
@@ -164,6 +189,11 @@ class LLMClient:
         return retrying(self._send, messages)
 
     def _send(self, messages: list[dict[str, str]]) -> str:
+        """Make one HTTP request and sort the result into text or a typed error.
+
+        429 becomes RateLimitError, 5xx and network faults RetryableLLMError, 401/403/404
+        FatalLLMError, Groq's invalid-JSON 400 InvalidOutputError, other 4xx NonRetryableLLMError.
+        """
         self._limiter.acquire()
         payload: dict[str, Any] = {
             "model": self._settings.model,

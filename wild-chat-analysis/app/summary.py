@@ -32,6 +32,7 @@ def group_prompts(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _bucket(length: int) -> str:
+    """Return the name of the length bucket a prompt of `length` characters falls in."""
     for name, low, high in LENGTH_BUCKETS:
         if length >= low and (high is None or length < high):
             return name
@@ -39,6 +40,7 @@ def _bucket(length: int) -> str:
 
 
 def _rate(group: list[dict[str, Any]]) -> dict[str, Any]:
+    """For a group of prompts: how many there are, the % with any smell, and mean smells per prompt."""
     n = len(group)
     smelly = sum(1 for p in group if p["smells"])
     return {
@@ -49,6 +51,11 @@ def _rate(group: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
+    """Turn output records into the numbers used in the paper.
+
+    Gives overall smell rates, smells per prompt, how often each smell appears, rates by
+    ChatGPT model and by prompt length, and the five most common smell pairs.
+    """
     prompts = group_prompts(records)
     n = len(prompts)
     counts = Counter(s for p in prompts for s in p["smells"])

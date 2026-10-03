@@ -68,7 +68,10 @@ class AnalysisFailedError(Exception):
 
 
 class ChatClient(Protocol):
-    def complete(self, messages: list[dict[str, str]]) -> str: ...
+    """Anything that takes chat messages and returns the reply text, such as LLMClient."""
+    def complete(self, messages: list[dict[str, str]]) -> str:
+        """Send the messages and return the model's reply text."""
+        ...
 
 
 def normalize_smell_type(raw: str) -> str:
@@ -121,6 +124,11 @@ def parse_analysis_response(text: str) -> AnalysisResult:
 
 
 def build_messages(content: str, max_chars: int, follow_up: bool = False) -> list[dict[str, str]]:
+    """Build the system and user messages for one prompt.
+
+    The prompt goes between fixed markers and is cut at `max_chars`. The model is told
+    whether it is a first or follow-up turn and whether the text was cut.
+    """
     text = content if len(content) <= max_chars else content[:max_chars] + _TRUNCATION_NOTE
     position = (
         "This is a follow-up message in a longer chat."
@@ -142,12 +150,19 @@ def build_messages(content: str, max_chars: int, follow_up: bool = False) -> lis
 
 
 class PromptAnalyzer:
+    """Labels one prompt with smells by asking the LLM, and asks again when the answer is not valid."""
     def __init__(self, client: ChatClient, max_prompt_chars: int = 12000, parse_retries: int = 2) -> None:
+        """Keep the client, the length cut-off and how many extra tries a bad answer gets."""
         self._client = client
         self._max_prompt_chars = max_prompt_chars
         self._parse_retries = parse_retries
 
     def analyze(self, prompt: UserPrompt) -> AnalysisResult:
+        """Return the smells the LLM finds in one prompt.
+
+        An answer that is not valid JSON or does not fit the schema is asked for again,
+        up to `parse_retries` more times. Raises AnalysisFailedError when every try fails.
+        """
         # Imported here to keep this module free of HTTP details at import time.
         from app.llm_client import InvalidOutputError
 

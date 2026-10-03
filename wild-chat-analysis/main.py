@@ -17,6 +17,7 @@ logger = logging.getLogger("prompt_smells")
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Define the command-line options. Any option left out falls back to config.yaml, .env or the default."""
     parser = argparse.ArgumentParser(
         description="Detect prompt smells in English user prompts from the WildChat dataset.",
     )
@@ -46,6 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def setup_logging(level: str, log_file: Path | None) -> None:
+    """Log to the console and, if given, a file. urllib3 is kept at WARNING so request details stay out."""
     handlers: list[logging.Handler] = [logging.StreamHandler()]
     if log_file is not None:
         log_file.parent.mkdir(parents=True, exist_ok=True)
@@ -61,6 +63,10 @@ def setup_logging(level: str, log_file: Path | None) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Read the options and settings, run the pipeline and return the exit code.
+
+    Returns 0 on success, 1 on a config, dataset or API access error, and 130 on Ctrl+C.
+    """
     args = build_parser().parse_args(argv)
     overrides: dict[str, Any] = {
         key: value
