@@ -1,12 +1,21 @@
-# DesignPatterns and Scent Lab
+# Design Patterns and Code Refactoring Lab
 
 This repository holds course material and working tools on four related topics:
 design patterns, code smells in C#, code smells in LLM-calling code, and the
 quality of prompts people write to chatbots. Each topic has its own folder.
 Start from the index below.
 
+New to design patterns? Read the
+[GoF design patterns tutorial](docs/GoF_Design_Patterns_Restaurant_Tutorial.md) first.
+It explains all 23 patterns through one restaurant story, with Java code.
+
 ## Contents
 
+- [GoF design patterns tutorial](docs/GoF_Design_Patterns_Restaurant_Tutorial.md) (separate doc)
+  - [Part 1: Creational patterns](docs/GoF_Design_Patterns_Restaurant_Tutorial.md#part-1-creational--5): Singleton, Factory Method, Abstract Factory, Builder, Prototype, plus SOLID
+  - [Part 2: Structural patterns](docs/GoF_Design_Patterns_Restaurant_Tutorial.md#part-ii--structural-design-patterns): Adapter, Facade, Decorator, Composite, Proxy, Bridge, Flyweight
+  - [Part 3: Behavioral patterns](docs/GoF_Design_Patterns_Restaurant_Tutorial.md#part-iii--behavioral-patterns): Strategy, Observer, Command and eight more
+  - [Map of all 23 patterns](docs/GoF_Design_Patterns_Restaurant_Tutorial.md#complete-map--all-23-gof-patterns)
 - [Projects by topic](#projects-by-topic)
 - [Document index](#document-index)
 - [Quick start: SCENT](#quick-start-scent)
@@ -27,7 +36,8 @@ Small Java examples that show a problem first and then the pattern that fixes it
 | [`classical_design_patterns/singletone`](classical_design_patterns/singletone/) | Singleton: `Admin_Problem.java` (many instances) and `Admin_Solve.java` (one shared instance) | Java |
 | [`DesignPatternFactory/DesignPatternCourse`](DesignPatternFactory/DesignPatternCourse/) | Factory patterns: [`fm_problem`](DesignPatternFactory/DesignPatternCourse/src/fm_problem/) (the problem), [`simple_factory`](DesignPatternFactory/DesignPatternCourse/src/simple_factory/) and [`factory_method`](DesignPatternFactory/DesignPatternCourse/src/factory_method/) | Java (VS Code project) |
 
-Theory: [Design Patterns lecture](sdp_lab_tools/materials/lectutre_1_Design_Patterns.pdf).
+Theory: [GoF design patterns tutorial](docs/GoF_Design_Patterns_Restaurant_Tutorial.md)
+and the [Design Patterns lecture](sdp_lab_tools/materials/lectutre_1_Design_Patterns.pdf).
 
 ### 2. Code smells and static analysis (C#)
 
@@ -62,6 +72,7 @@ Every written guide in the repo, grouped by project.
 
 | Project | Document | Read it when you want to |
 |---|---|---|
+| Design patterns | [GoF tutorial: Story of a Restaurant](docs/GoF_Design_Patterns_Restaurant_Tutorial.md) | learn all 23 GoF patterns, SOLID and when to use each pattern |
 | SCENT | [README](sdp_lab_tools/scent/README.md) | analyze a C# project |
 | SCENT | [Learning guide](sdp_lab_tools/scent/docs/LEARNING_GUIDE.md) | learn the whole pipeline step by step |
 | SCENT | [CLI workflow guide](sdp_lab_tools/scent/docs/CLI_WORKFLOW_GUIDE.md) | copy exact commands and see real output |
@@ -204,6 +215,8 @@ are documented in the [scent-llm guide](sdp_lab_tools/scent-llm/docs/GUIDE.md).
 │   └── singletone/            Java Singleton example (problem and fix)
 ├── DesignPatternFactory/
 │   └── DesignPatternCourse/   Java Simple Factory and Factory Method examples
+├── docs/
+│   └── GoF_Design_Patterns_Restaurant_Tutorial.md   all 23 GoF patterns, Parts 1-3
 ├── sdp_lab_tools/
 │   ├── scent/                 Rust C# static analyzer
 │   ├── code-smells-demo/      C# app with smells on purpose
