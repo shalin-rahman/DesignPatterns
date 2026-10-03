@@ -1,0 +1,39 @@
+# Settings from .env / environment override this file. CLI arguments override both.
+dataset_url: "https://huggingface.co/datasets/allenai/WildChat/resolve/main/data/train-00003-of-00006.parquet"
+cache_dir: "data"
+
+output_file: "output/prompt_smells.json"
+
+# Limit rows read from the parquet file (null = all).
+max_records: null
+# Limit prompts sent to the API in this run (null = all). Use a small number to test.
+max_prompts: null
+# Keep this share of conversations (0 < x <= 1). Picked by a hash of conversation_id,
+# so the same sample is chosen on every run.
+sample_fraction: 1.0
+sample_seed: "wildchat"
+
+language: "English"
+
+concurrency: 5
+request_timeout: 60
+retry_attempts: 3
+
+# Longer prompts are cut to this many characters before sending.
+max_prompt_chars: 12000
+# Extra API calls when the model returns JSON that does not fit the schema.
+parse_retries: 2
+
+# Skip prompts already in the checkpoint file.
+resume: true
+
+log_level: "INFO"
+log_file: null
+
+llm:
+  base_url: "https://api.groq.com/openai/v1"
+  model: "openai/gpt-oss-120b"
+  temperature: 0
+  max_tokens: 1000
+  json_mode: true
+  requests_per_minute: 0

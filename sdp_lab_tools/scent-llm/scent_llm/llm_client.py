@@ -1,9 +1,10 @@
 """Thin, provider-agnostic client for generating code from a local or cloud LLM.
 
-Supports two backends out of the box:
+Supports four backends out of the box:
   - Ollama (local, no API key, default backend)
   - Groq (cloud, OpenAI-compatible chat completions API)
   - Gemini (cloud, Google Gen AI SDK)
+  - OpenRouter (cloud, OpenAI-compatible chat completions API)
 
 Both call paths deliberately set every field that scent_llm's own smell
 detectors look for (system message, explicit temperature, bounded max
@@ -51,9 +52,11 @@ class LLMClient:
             return self._generate_ollama(system_message, user_message)
         if self.config.provider == "gemini":
             return self._generate_gemini(system_message, user_message)
+        if self.config.provider == "openrouter":
+            return self._generate_openrouter(system_message, user_message)
         raise LLMClientError(
             f"Unknown provider '{self.config.provider}'. Supported providers: "
-            "'ollama', 'groq', 'gemini'."
+            "'ollama', 'groq', 'gemini', 'openrouter'."
         )
 
     # -- Ollama ---------------------------------------------------------
@@ -169,6 +172,41 @@ class LLMClient:
             code=_extract_code_block(content),
             raw_response=raw_response,
             provider="gemini",
+            model=self.config.model,
+        )
+
+    # -- OpenRouter ---------------------------------------------------------
+
+    def _generate_openrouter(self, system_message: str, user_message: str) -> GenerationResult:
+        if not self.config.openrouter_api_key:
+            raise LLMClientError(
+                "OpenRouter provider selected but no API key was found. "
+                "Set the OPENROUTER_API_KEY environment variable, or switch to "
+                "provider='ollama' to run fully locally."
+            )
+        url = f"{self.config.openrouter_base_url.rstrip('/')}/chat/completions"
+        payload = {
+            "model": self.config.model,
+            "messages": [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": user_message},
+            ],
+            "temperature": self.config.temperature,
+            "max_tokens": self.config.max_tokens,
+        }
+        headers = {
+            "Authorization": f"Bearer {self.config.openrouter_api_key}",
+            "Content-Type": "application/json",
+        }
+        data = self._post_json(url, payload, headers=headers)
+        try:
+            content = data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise LLMClientError(f"Unexpected OpenRouter response shape: {data}") from exc
+        return GenerationResult(
+            code=_extract_code_block(content),
+            raw_response=data,
+            provider="openrouter",
             model=self.config.model,
         )
 

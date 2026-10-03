@@ -1,0 +1,15 @@
+{
+  // pdflatex twice so references resolve; latexmk is skipped because MiKTeX's needs Perl.
+  "latex-workshop.latex.tools": [
+    {
+      "name": "pdflatex",
+      "command": "pdflatex",
+      "args": ["-synctex=1", "-interaction=nonstopmode", "-file-line-error", "%DOC%"]
+    }
+  ],
+  "latex-workshop.latex.recipes": [
+    { "name": "pdflatex x2", "tools": ["pdflatex", "pdflatex"] }
+  ],
+  "latex-workshop.latex.recipe.default": "first",
+  "latex-workshop.latex.autoBuild.run": "onSave"
+}

@@ -1,1 +1,9 @@
 sdp_lab_tools/SpecDetect4LLM_ICSE/
+.env
+Sep.mp3
+sdp_lab_tools/WildChat/data/train-00000-of-00006.parquet
+sdp_lab_tools/WildChat/data/train-00001-of-00006.parquet
+sdp_lab_tools/WildChat/data/train-00002-of-00006.parquet
+sdp_lab_tools/WildChat/data/train-00003-of-00006.parquet
+sdp_lab_tools/WildChat/data/train-00004-of-00006.parquet
+sdp_lab_tools/WildChat/data/train-00005-of-00006.parquet

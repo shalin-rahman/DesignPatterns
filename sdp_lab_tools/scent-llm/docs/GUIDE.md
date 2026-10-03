@@ -8,8 +8,8 @@ configuration is resolved, and what each detected smell means. The
 
 `scent-llm` does two things:
 
-1. Asks a configured LLM (local Ollama or cloud Groq) to write code for a
-   task you describe.
+1. Asks a configured LLM (local Ollama or cloud Groq/Gemini/OpenRouter) to write
+   code for a task you describe.
 2. Statically checks Python source — generated or hand-written — for five
    "LLM code smells": patterns in code that *calls* an LLM API that make
    the call unreliable, unbounded in cost, or non-reproducible.
@@ -18,8 +18,8 @@ It also renders two textual diagrams of the tool itself, and can dry-run
 a source file (any of several languages) in an isolated sandbox.
 
 Everything talks to the network only when you explicitly run `generate`
-against `groq`, `gemini`, or a remote Ollama host. `analyze`, `sandbox`, and `diagram`
-never make a network call.
+against `groq`, `gemini`, `openrouter`, or a remote Ollama host. `analyze`,
+`sandbox`, and `diagram` never make a network call.
 
 ## 2. Install
 
@@ -30,8 +30,8 @@ python -m pip install -e .
 
 Requires Python 3.10+. The project uses the official `google-genai` SDK for
 Gemini; on Python 3.10, `tomli` is also installed for reading
-`scent_llm.toml`. The Ollama and Groq transports otherwise use the standard
-library.
+`scent_llm.toml`. The Ollama, Groq, and OpenRouter transports otherwise use
+the standard library.
 
 After installing, the `scent-llm` command is on your PATH. You can also
 run it without installing via `python -m scent_llm.cli ...` from inside
@@ -57,7 +57,7 @@ output -> (optional) analyze it. Flags:
 | Flag | Meaning |
 |---|---|
 | `--language LANG` | target language for the generated code (default `python`) |
-| `--provider {ollama,groq,gemini}` | override the configured provider for this run |
+| `--provider {ollama,groq,gemini,openrouter}` | override the configured provider for this run |
 | `--model NAME` | override the configured model for this run |
 | `--temperature FLOAT` | override temperature for this run |
 | `--max-tokens N` | override the output length bound for this run |
@@ -70,6 +70,13 @@ Example, generating with Groq and checking the result:
 ```
 GROQ_API_KEY=sk-... scent-llm generate "a retry wrapper for an HTTP call" \
   --provider groq --out retry.py --analyze
+```
+
+Or with OpenRouter:
+
+```
+OPENROUTER_API_KEY=sk-or-... scent-llm generate "a retry wrapper for an HTTP call" \
+  --provider openrouter --model openai/gpt-oss-120b --out retry.py --analyze
 ```
 
 If neither Ollama is running locally nor a cloud provider key is set, the command
@@ -145,10 +152,76 @@ plain ASCII connectors (`|--`, `` `-- ``) rather than Unicode box-drawing
 characters, so it renders correctly on a default-codepage Windows console
 as well as any UTF-8 terminal.
 
+### 3.5 Full-cycle demo (`demo.bat`)
+
+`demo.bat` in the project root runs four of the commands above in sequence and
+prints a short "Uses:" note before each one explaining what runs and
+whether it touches the network. Run it from the `scent-llm` directory:
+
+```powershell
+.\demo.bat
+```
+
+Steps 1 and 2 are interactive menus (each auto-selects option 1 after 15
+seconds if you don't answer, so the script never hangs unattended):
+
+**Step 1 prompt choice** (feeds `generate --analyze`):
+
+| Option | Prompt | Expected result |
+|---|---|---|
+| 1 (default) | Plain algorithm, no LLM call | 0 smells — nothing to analyze |
+| 2 | LLM-calling code, minimal args | Real smells: NSO/UMM/TNES/NMVP/NSM |
+| 3 | LLM-calling code, fully configured | 0 smells — a clean, well-formed LLM call |
+| 4 | Custom prompt you type in | Depends on what the model generates |
+
+**Step 2 target choice** (feeds `analyze --json`):
+
+| Option | Target | Notes |
+|---|---|---|
+| 1 (default) | `examples\smelly_example.py` | Known-smelly demo file, trips 4 detectors |
+| 2 | `scent_llm` | This tool's own source |
+| 3 | Custom path you type in | Any file or directory |
+
+What each step actually does:
+
+| # | Command | What runs | Network call? |
+|---|---|---|---|
+| 1 | `generate --analyze` | `LLMConfig.load()` resolves provider/model/keys (`.env` > env var > `scent_llm.toml` > default), then `LLMClient` POSTs one chat-completions request to the configured provider, using whichever prompt was picked from the Step 1 menu. `--analyze` then runs the same static analyzer as step 2, in memory, against the generated code. The detectors only fire on LLM SDK call sites found *inside* the generated code (e.g. `.chat.completions.create`) — if the generated snippet doesn't itself call an LLM API (option 1), 0 smells is the expected result, not a failure. | Yes — the only step that calls out to an LLM provider |
+| 2 | `analyze --json` | `ast_analyzer.py` walks the Python AST under whichever target was picked from the Step 2 menu, looking for known LLM SDK call shapes (e.g. `.chat.completions.create`); no SDK installation is required. Each match runs through the 5 detector functions in `smells/detectors.py`. | No |
+| 3 | `sandbox ... --language python` | `dry_run.py` checks for the Docker CLI first and, if present, runs the file via `docker run --rm --network none ...`; otherwise (or with `--no-docker`) it falls back to a plain subprocess with a wall-clock timeout. | No (local execution only) |
+| 4 | `diagram sequence` | `architecture.py` prints a static, hardcoded ASCII diagram of this tool's own pipeline. | No |
+
+`diagram tree` is not part of the demo cycle — it's a one-off filesystem
+listing, not a step in the generate/analyze/sandbox/diagram pipeline; run it
+directly with `python -m scent_llm.cli diagram tree --path .` if you want it.
+
+Because step 1 is the only one that calls a real provider, it's the only
+step that costs API usage and can fail on a missing/invalid key. Step 3 can
+fail locally if Docker is installed but its daemon isn't running — that's
+a machine-configuration issue, not a scent-llm bug; add `--no-docker` to
+skip straight to the subprocess fallback.
+
 ## 4. Configuration
 
-Resolution order, highest wins: **CLI flag > environment variable >
-`scent_llm.toml` in the current directory > built-in default.**
+Resolution order, highest wins: **CLI flag > environment variable (including
+one loaded from a `.env` file in the current directory) > `scent_llm.toml` in
+the current directory > built-in default.**
+
+### Using a `.env` file
+
+Copy `.env.example` to `.env` in the directory you run `scent-llm` from, then
+fill in the keys for the providers you use:
+
+```powershell
+cp .env.example .env
+```
+
+`scent-llm` loads `.env` automatically on every `generate` call via
+`python-dotenv`. It never overrides a variable already set in the real shell
+or CI environment — `.env` only fills in what isn't already set. `.env` is
+gitignored; `.env.example` is the committed, placeholder-only template. A
+blank value in `.env` (e.g. `SCENT_LLM_MODEL=`) is treated the same as unset,
+so you can leave settings for providers you don't use empty.
 
 ### Where configuration belongs
 
@@ -157,6 +230,7 @@ Use the narrowest location that matches the lifetime of the setting:
 | Location | Put here | Do not put here |
 |---|---|---|
 | CLI flags | One-off experiments, temporary model/temperature changes | Secrets |
+| `.env` in the current working directory | Local, per-machine secrets and settings (gitignored) | Anything meant to be shared via git |
 | Environment variables | API keys, machine- or session-specific endpoints, CI values | Shared project defaults |
 | `scent_llm.toml` in the **current working directory** | Team-shared non-secret defaults | API keys in a committed file |
 | Built-in defaults | Safe fallback for local Ollama | Deployment-specific assumptions |
@@ -182,6 +256,8 @@ load configuration as part of `generate`.
 | Groq base URL | — | `GROQ_BASE_URL` | `llm.groq_base_url` | `https://api.groq.com/openai/v1` |
 | Groq API key | — | `GROQ_API_KEY` | `llm.groq_api_key` (not recommended — use the env var) | none |
 | Gemini API key | — | `GEMINI_API_KEY` | `llm.gemini_api_key` (not recommended — use the env var) | none |
+| OpenRouter base URL | — | `OPENROUTER_BASE_URL` | `llm.openrouter_base_url` | `https://openrouter.ai/api/v1` |
+| OpenRouter API key | — | `OPENROUTER_API_KEY` | `llm.openrouter_api_key` (not recommended — use the env var) | none |
 | Temperature | `--temperature` | `SCENT_LLM_TEMPERATURE` | `llm.temperature` | `0.2` |
 | Max tokens | `--max-tokens` | `SCENT_LLM_MAX_TOKENS` | `llm.max_tokens` | `2048` |
 | Request timeout | — | — | `llm.timeout_seconds` | `60` |
@@ -217,6 +293,12 @@ env vars / defaults) — it will never crash the tool.
   `export GEMINI_API_KEY=...` on macOS/Linux), and pass `--provider gemini`.
   The default model is `gemini-3-flash-preview`; override it with `--model` or
   `SCENT_LLM_MODEL`.
+- **OpenRouter (cloud, needs an API key):** get a key at openrouter.ai/keys,
+  then `export OPENROUTER_API_KEY=...` (or `$env:OPENROUTER_API_KEY = "..."`
+  in PowerShell) and pass `--provider openrouter`. OpenRouter proxies many
+  models behind one OpenAI-compatible endpoint; pass a model slug (e.g.
+  `openai/gpt-oss-120b`, `anthropic/claude-sonnet-5`) with `--model` or
+  `SCENT_LLM_MODEL` — see openrouter.ai/models for the full list.
 
 The package installs the current `google-genai` SDK automatically:
 
@@ -246,8 +328,8 @@ selecting an available model.
 
 Hugging Face is relevant to the learning model and to a future provider
 adapter, but it is **not a currently supported `scent-llm` provider**. The
-current implementation accepts `ollama`, `groq`, and `gemini`; do not configure
-`provider = "huggingface"` and expect it to work.
+current implementation accepts `ollama`, `groq`, `gemini`, and `openrouter`;
+do not configure `provider = "huggingface"` and expect it to work.
 
 Hugging Face's current documentation reinforces several behaviors already
 represented by this project:
@@ -334,7 +416,21 @@ Remove-Item Env:GROQ_API_KEY
 In CI, store `GROQ_API_KEY` in the runner's secret store. Do not echo it,
 write it to `scent_llm.toml`, or pass it as a command-line argument.
 
-#### Scenario D: troubleshoot precedence
+#### Scenario D: OpenRouter for access to many models behind one key
+
+Same pattern as Groq, but through OpenRouter's proxy:
+
+```powershell
+$env:OPENROUTER_API_KEY = "replace-me"
+scent-llm generate "write a bounded retry helper" `
+  --provider openrouter --model openai/gpt-oss-120b --analyze
+Remove-Item Env:OPENROUTER_API_KEY
+```
+
+The same secret-handling rules from Scenario C apply: store the key in a
+secret store, never in `scent_llm.toml` or on the command line.
+
+#### Scenario E: troubleshoot precedence
 
 Start with the lowest layer and add one override at a time:
 
@@ -354,7 +450,7 @@ Use this map when extending or reviewing the tool:
 |---|---|---|
 | CLI surface | `scent_llm/cli.py` | Parses commands, flags, progress, exit codes |
 | Configuration | `scent_llm/config.py` | Defaults, TOML loading, environment mapping, precedence |
-| Provider calls | `scent_llm/llm_client.py` | Ollama/Groq payloads, HTTP errors, code extraction |
+| Provider calls | `scent_llm/llm_client.py` | Ollama/Groq/Gemini/OpenRouter payloads, HTTP errors, code extraction |
 | Call-site discovery | `scent_llm/analysis/ast_analyzer.py` | Recognizes SDK call shapes without importing SDKs |
 | Smell rules | `scent_llm/smells/detectors.py` | One pure detector per smell |
 | Refactoring advice | `scent_llm/smells/refactor.py` | Human-readable fix suggestions |
@@ -497,6 +593,9 @@ that clearly instead of failing with a confusing traceback.
   reachable instance.
 - **"Groq provider selected but no API key was found"** — set
   `GROQ_API_KEY`, or drop `--provider groq` to fall back to local Ollama.
+- **"OpenRouter provider selected but no API key was found"** — set
+  `OPENROUTER_API_KEY`, or drop `--provider openrouter` to fall back to
+  local Ollama.
 - **Garbled tree/box characters on Windows** — shouldn't happen; this
   tool only prints ASCII. If you see mojibake, it's coming from something
   else in your pipeline (e.g. a font or terminal encoding issue upstream).

@@ -35,7 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     gen = subparsers.add_parser("generate", help="Generate code with a configured LLM", parents=[quiet_parent])
     gen.add_argument("task", help="Natural-language description of the code to generate")
     gen.add_argument("--language", default="python")
-    gen.add_argument("--provider", choices=["ollama", "groq", "gemini"], default=None)
+    gen.add_argument("--provider", choices=["ollama", "groq", "gemini", "openrouter"], default=None)
     gen.add_argument("--model", default=None)
     gen.add_argument("--temperature", type=float, default=None)
     gen.add_argument("--max-tokens", type=int, default=None)

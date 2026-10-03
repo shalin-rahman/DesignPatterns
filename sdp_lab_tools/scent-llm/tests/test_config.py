@@ -8,11 +8,18 @@ from scent_llm.config import (
     DEFAULT_GROQ_MODEL,
     DEFAULT_GEMINI_MODEL,
     DEFAULT_OLLAMA_MODEL,
+    DEFAULT_OPENROUTER_MODEL,
     LLMConfig,
 )
 
 
 class TestLLMConfig(unittest.TestCase):
+    def setUp(self):
+        # Tests must not pick up the developer's real local .env file.
+        patcher = patch("scent_llm.config.load_dotenv")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_builtin_defaults_use_local_ollama(self):
         with patch.dict(os.environ, {}, clear=True):
             config = LLMConfig.load(config_path=Path("missing-scent-llm.toml"))
@@ -64,6 +71,19 @@ class TestLLMConfig(unittest.TestCase):
 
         self.assertEqual(config.provider, "gemini")
         self.assertEqual(config.model, DEFAULT_GEMINI_MODEL)
+
+    def test_switching_to_openrouter_selects_provider_default_model(self):
+        with patch.dict(os.environ, {}, clear=True):
+            config = LLMConfig.load(overrides={"provider": "openrouter"})
+
+        self.assertEqual(config.provider, "openrouter")
+        self.assertEqual(config.model, DEFAULT_OPENROUTER_MODEL)
+
+    def test_openrouter_api_key_read_from_environment(self):
+        with patch.dict(os.environ, {"OPENROUTER_API_KEY": "test-key"}, clear=True):
+            config = LLMConfig.load(config_path=Path("missing-scent-llm.toml"))
+
+        self.assertEqual(config.openrouter_api_key, "test-key")
 
     def test_invalid_numeric_environment_values_keep_defaults(self):
         with patch.dict(

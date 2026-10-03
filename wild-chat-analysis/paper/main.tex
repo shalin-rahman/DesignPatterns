@@ -1,0 +1,121 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[T1]{fontenc}
+\usepackage{booktabs}
+\usepackage{url}
+
+\begin{document}
+
+\title{How Do People Actually Prompt? Prompt Smells in 1,000 Real ChatGPT Requests}
+
+\author{\IEEEauthorblockN{Author Name}
+\IEEEauthorblockA{Institute of Information Technology\\
+Email: author@example.org}}
+
+\maketitle
+
+\begin{abstract}
+%ABSTRACT%
+\end{abstract}
+
+\begin{IEEEkeywords}
+prompt engineering, prompt smells, large language models, WildChat, empirical study
+\end{IEEEkeywords}
+
+\section{Introduction}
+Most advice on writing prompts comes from guides and from lab studies with set tasks.
+We know much less about how people write prompts when nobody is watching.
+WildChat~\cite{wildchat} closes part of that gap. It holds about a million real
+conversations that users had with ChatGPT in exchange for free access.
+
+In code, a \emph{smell} is a sign that something may be wrong, even if the program
+still runs~\cite{fowler}. We borrow the idea for prompts. A prompt smell is a
+pattern that makes a request harder for a model to answer well, such as a missing
+goal, an unclear ``it'', or two rules that cannot both hold.
+
+We ask two questions.
+\textbf{RQ1:} How common are prompt smells in real English prompts, and which ones
+come up most?
+\textbf{RQ2:} Do smell rates change with prompt length and with the model the user
+was talking to?
+
+%CONTRIB%
+
+\section{Related Work}
+White et al.~\cite{white} collect prompt patterns that work, and the Prompt
+Report~\cite{promptreport} surveys prompting methods. Both describe what good
+prompts look like rather than what users really write. Zamfirescu-Pereira
+et al.~\cite{johnny} watched non-experts write prompts and found they often
+give up after one failed try and lean on human-style instructions. Our study looks
+at the same problem at a larger scale, using logs instead of a lab. We use an
+LLM as the labeler, following the LLM-as-a-judge line of work~\cite{judge}.
+
+\section{Method}
+\subsection{Data and sampling}
+We used one of the six training shards of WildChat (\texttt{train-00003-of-00006},
+88,238 conversations). To avoid taking only the earliest conversations in the
+file, we kept a conversation when a hash of its id fell in the lowest 1\%. This
+gives a fixed, repeatable sample spread across the whole shard. From it we took
+every user turn tagged as English that was not empty, which gave 1,003 prompts,
+and sent all of them to the labeler.
+
+\subsection{Smell catalog}
+We used ten smells, shown in Table~\ref{tab:freq}. They cover missing context
+(vague prompts, unclear references, no stated output format), structure (one
+prompt asking for many things, bloat, repetition), contradictions (conflicting
+constraints), and tone (excess persona, loaded framing, wrong register).
+
+\subsection{LLM labeling}
+Each prompt was sent on its own to \texttt{gpt-oss-120b}~\cite{gptoss} through
+the Groq API at temperature 0. The instructions list the ten smells with a short
+definition, mark the prompt with fixed start and end markers, and say whether the
+prompt is the first turn or a follow-up, so that a short follow-up such as
+``make it shorter'' is not marked vague just because it leans on earlier turns.
+The model had to return JSON with a smell name and a one-sentence reason for each
+smell found. We checked every answer against a schema and asked again, up to three
+attempts in all, when it did not fit. Close spellings of a smell name were mapped
+to the catalog name. Prompts longer than 12,000 characters were cut, and the model
+was told so. Prompts that still failed were logged and left out.
+
+\section{Results}
+%RESULTS%
+
+\section{Discussion}
+%DISCUSSION%
+
+\section{Threats to Validity}
+\textbf{Labels.} The labels come from one LLM and were not checked by people.
+The model may be too strict or too lenient, and we did not measure agreement with
+human raters. The counts should be read as estimates.
+\textbf{Sample.} We used one shard, a 1\% sample and English only. WildChat
+language tags are sometimes wrong; we saw a few Chinese prompts tagged as English.
+WildChat users chose to share their chats for free access, so they may not
+represent all ChatGPT users.
+\textbf{Context.} Each prompt was judged alone, with only a first-turn or follow-up
+flag. A prompt that looks vague alone may be clear in its chat.
+
+\section{Conclusion}
+%CONCLUSION%
+
+\section*{Data and Code Availability}
+The analysis tool, the sampling settings and the labeled output
+(\texttt{wildchat\_1k\_smells.json}) are available from the authors.
+
+\begin{thebibliography}{9}
+\bibitem{wildchat} W.~Zhao, X.~Ren, J.~Hessel, C.~Cardie, Y.~Choi, and Y.~Deng,
+``WildChat: 1M ChatGPT interaction logs in the wild,'' in \emph{Proc. ICLR}, 2024.
+\bibitem{fowler} M.~Fowler, \emph{Refactoring: Improving the Design of Existing
+Code}. Addison-Wesley, 1999.
+\bibitem{white} J.~White \emph{et al.}, ``A prompt pattern catalog to enhance
+prompt engineering with ChatGPT,'' arXiv:2302.11382, 2023.
+\bibitem{promptreport} S.~Schulhoff \emph{et al.}, ``The prompt report: A
+systematic survey of prompting techniques,'' arXiv:2406.06608, 2024.
+\bibitem{johnny} J.~D. Zamfirescu-Pereira, R.~Y. Wong, B.~Hartmann, and Q.~Yang,
+``Why Johnny can't prompt: How non-AI experts try (and fail) to design LLM
+prompts,'' in \emph{Proc. CHI}, 2023.
+\bibitem{judge} L.~Zheng \emph{et al.}, ``Judging LLM-as-a-judge with MT-Bench and
+Chatbot Arena,'' in \emph{Proc. NeurIPS Datasets and Benchmarks}, 2023.
+\bibitem{gptoss} OpenAI, ``gpt-oss-120b \& gpt-oss-20b model card,''
+arXiv:2508.10925, 2025.
+\end{thebibliography}
+
+\end{document}
