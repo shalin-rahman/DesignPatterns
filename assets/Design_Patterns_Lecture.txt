@@ -1,0 +1,984 @@
+S O F T W A R E D E S I G N C O U R S E
+Design Patterns
+Md Saeed Siddik
+Assistant Professor, 
+Institute of IT, University of Dhaka
+22
+classic patterns
+3
+families
+1994
+the GoF book
+Creational
+Structural
+Behavioral
+FOUNDATIONS
+What is a design pattern?
+A typical, reusable solution to a 
+commonly occurring problem in 
+software design.
+Think of it as a blueprint: the layout and features are 
+fixed, but you decide how to build it in your own code.
+A pattern is…
+•
+a named, described solution
+•
+a language-independent template
+•
+proven across many projects
+A pattern is not…
+•
+ready-to-paste code or a library
+•
+an algorithm (a fixed recipe of steps)
+•
+a rule you must always follow
+Recurring problem
+Seen again and again in 
+different projects
+Pattern = blueprint
+A named, documented 
+solution
+Your customized 
+code
+Adapted to your 
+language and context
+Design Patterns
+2
+FOUNDATIONS
+Why learn design patterns?
+One word replaces a paragraph
+W I T H O U T A S H A R E D V O C A B U L A R Y
+“Make the class hide its constructor, keep a 
+static field with the only instance, create it on 
+first use, and expose a static accessor…”
+W I T H P A T T E R N S
+“Just make it a Singleton.”
+Reusability
+Apply the same idea across 
+projects and problems 
+instead of re-inventing it.
+Standardization
+A shared language for 
+design discussions, 
+documentation and code 
+reviews.
+Efficiency
+Skip re-solving known 
+problems and ship faster 
+with proven approaches.
+Flexibility
+Abstract templates you 
+adapt to fit your own 
+requirements.
+Design Patterns
+3
+FOUNDATIONS
+How to read a pattern
+Every catalog entry answers the same six questions
+01
+Intent
+What does the pattern do, in one 
+sentence?
+02
+Problem
+The situation and forces that call for 
+the pattern.
+03
+Solution
+The roles (classes/objects) and how 
+they collaborate.
+04
+Structure
+A class or sequence diagram of the 
+participants.
+05
+Applicability
+When it fits, and when it does not.
+06
+Consequences
+Trade-offs: pros, cons, relations to 
+other patterns.
+Design Patterns
+4
+CLASSIFICATION
+Three families of patterns
+22
+classic patterns
+Creational · 5
+How are objects created?
+Factory Method, Abstract Factory, Builder, Prototype, 
+Singleton
+Structural · 7
+How are objects composed into larger structures?
+Adapter, Bridge, Composite, Decorator, Facade, Flyweight, 
+Proxy
+Behavioral · 10
+How do objects communicate and share work?
+Chain of Responsibility, Command, Iterator, Mediator, 
+Memento, Observer, State, Strategy, Template Method, 
+Visitor
+Design Patterns
+5
+CLASSIFICATION
+The catalog at a glance
+Creational  ·  5
+Factory Method ,  subclasses choose the class
+Abstract Factory ,  families of related objects
+Builder ,  step-by-step construction
+Prototype ,  copy existing objects
+Singleton ,  exactly one instance
+Structural  ·  7
+Adapter ,  make interfaces compatible
+Bridge ,  decouple abstraction
+Composite ,  tree treated as one object
+Decorator ,  add behavior dynamically
+Facade ,  one simple entry point
+Flyweight ,  share state to save memory
+Proxy ,  stand-in that controls access
+Behavioral  ·  10
+Chain of Responsibility ,  pass it along
+Command ,  request as an object
+Iterator ,  traverse a collection
+Mediator ,  centralize communication
+Memento ,  save and restore state
+Observer ,  notify subscribers
+State ,  behavior follows state
+Strategy ,  swap algorithms at runtime
+Template Method ,  skeleton + steps
+Visitor ,  add new operations
+Also documented elsewhere: Interpreter (GoF), Object Pool, Private Class Data, Null Object (SourceMaking).
+Design Patterns
+6
+FOUNDATIONS
+Ideas behind almost every pattern
+Program to an 
+interface
+Depend on abstractions, not 
+concrete classes, so 
+implementations can be swapped.
+Favor composition 
+over inheritance
+Assemble behavior from 
+collaborating objects instead of 
+deep class hierarchies.
+Encapsulate what 
+varies
+Isolate the parts that change so the 
+rest of the code stays stable.
+SOLID
+Five design principles that 
+make code clean, maintainable 
+and loosely coupled, the 
+prerequisite for everything that 
+follows.
+S
+Single 
+Responsibility
+One reason to 
+change
+O
+Open / Closed
+Open to extend, 
+closed to change
+L
+Liskov 
+Substitution
+Subtypes can 
+replace base types
+I
+Interface 
+Segregation
+Small, focused 
+interfaces
+D
+Dependency 
+Inversion
+Depend on 
+abstractions
+Design Patterns
+7
+01
+Creational Patterns
+How objects get created, flexibly, reusably, and without 
+tight coupling
+Factory Method
+Abstract Factory
+Builder
+Prototype
+Singleton
+CREATIONAL PATTERNS
+Why not just call new?
+WITHOUT: every client knows every concrete class
+Client A
+Client B
+Client C
+Truck
+Ship
+Plane
+WITH: creation lives in one place
+Client A
+Client B
+Client C
+Factory
+Truck
+Ship
+Plane
+Creational patterns decouple what is created from who uses it, so you can add new product types 
+without rewriting clients.
+Design Patterns
+9
+CREATIONAL PATTERN
+Singleton
+Exactly one instance, with one global access point
+I N T E N T
+Guarantee a class has only one instance and 
+give everyone a single point of access to it.
+A N A L O G Y
+A country has one official government. 
+Whoever is in office, “the Government” is the 
+single point of contact.
+U S E W H E N
+Exactly one shared resource is needed: logger, 
+configuration, connection pool.
+W A T C H O U T
+Global state, thread-safety and hard-to-test 
+code.
+Logger
+- static instance: Logger
+- Logger()
++ static getInstance(): Logger
+ClassA
+ClassB
+ClassC
+Every caller receives the same object
+J A V A
+public class Logger {
+  private static Logger instance;
+ 
+  private Logger() { }             // no outside "new"
+ 
+  public static synchronized Logger getInstance() {
+    if (instance == null) instance = new Logger();
+    return instance;
+  }
+}
+Design Patterns
+10
+CREATIONAL PATTERN
+Factory Method
+Let subclasses decide which class to instantiate
+Logistics
++ planDelivery()
++ createTransport(): Transport
+RoadLogistics
++ createTransport(): Truck
+SeaLogistics
++ createTransport(): Ship
+«interface»
+Transport
++ deliver()
+Truck
++ deliver()
+Ship
++ deliver()
+creates / uses
+C r e a t o r s
+P r o d u c t s
+U S E W H E N
+You cannot know the exact classes beforehand, or you want 
+callers to add new product types without touching client 
+code.
+J A V A
+abstract class Logistics {
+  abstract Transport createTransport();
+  void planDelivery() {
+    createTransport().deliver();
+  }
+}
+Design Patterns
+11
+CREATIONAL PATTERN
+Abstract Factory
+Create whole families of related objects that always match
+WinFactory
+MacFactory
+createButton()
+createCheckbox()
+OK
+OK
+Option
+Option
+Products from one factory always belong together, mixing a 
+Windows button with a Mac checkbox is impossible by design.
+I N T E N T
+Produce families of related objects without naming 
+their concrete classes.
+U S E W H E N
+Your code must work with several product families 
+(themes, platforms, databases) that must not be 
+mixed.
+J A V A
+interface GUIFactory {
+  Button createButton();
+  Checkbox createCheckbox();
+}
+class MacFactory implements GUIFactory {...}
+ 
+GUIFactory f = new MacFactory();
+Button b = f.createButton();      // Mac
+Checkbox c = f.createCheckbox();  // Mac
+Design Patterns
+12
+CREATIONAL PATTERN
+Builder
+Construct complex objects step by step
+Telescoping constructor, what does each argument 
+mean?
+B E F O R E
+Pizza p = new Pizza(
+    12,      // size?
+    true,    // cheese?
+    false,   // pepperoni?
+    true,    // mushrooms?
+    false);  // extra sauce?
+Fluent builder, every step has a name
+A F T E R
+Pizza p = new Pizza.Builder()
+    .size(12)
+    .cheese()
+    .mushrooms()
+    .build();      // validated, immutable
+Readable calls
+Named steps replace a wall of 
+unlabeled boolean and numeric 
+arguments.
+Immutable results
+The object is handed out complete via 
+build(), so it can be immutable.
+Many representations
+One construction process can yield 
+different products (e.g., via a Director).
+Design Patterns
+13
+CREATIONAL PATTERNS
+Prototype & Object Pool
+Prototype
+Create new objects by copying an existing one, like a 
+cell dividing in two.
+original
+radius = 5
+color = red
+copy 1
+copy 2
+clone()
+J A V A
+Shape copy = original.clone();
+copy.setColor("blue");   // original unchanged
+ 
+// avoids re-running expensive setup
+Object Pool
+Recycle expensive objects (DB connections, threads) 
+instead of creating and destroying them.
+P O O L
+free ●   in use ○
+Client
+acquire()
+release()
+J A V A
+Connection c = pool.acquire();
+try { c.query(sql); }
+finally { pool.release(c); }
+Design Patterns
+14
+02
+Structural Patterns
+How classes and objects are assembled into larger, 
+flexible structures
+Adapter
+Bridge
+Composite
+Decorator
+Facade
+Flyweight
+Proxy
+STRUCTURAL PATTERNS
+Seven patterns, seven analogies
+Assemble objects into bigger structures without tangling them
+Adapter
+A travel plug converts 
+one socket shape into 
+another.
+Bridge
+A universal remote 
+controls any kind of 
+device.
+Composite
+Folders hold files and 
+other folders, all 
+handled the same way.
+Decorator
+Coffee toppings: each 
+layer wraps the one 
+before it.
+Facade
+A hotel concierge: one request 
+triggers many back-office services.
+Flyweight
+Thousands of trees share one 
+species definition; only position 
+differs.
+Proxy
+A credit card stands in for cash 
+and guards access to your bank.
+Design Patterns
+16
+STRUCTURAL PATTERN
+Adapter
+Make incompatible interfaces work together
+Client
+«interface»
+ReportTarget
++ getJson(): String
+XmlToJsonAdapter
+- legacy: LegacyXmlService
++ getJson(): String
+LegacyXmlService
++ getXml(): String
+implements
+delegates
+What the client expects
+What we already have
+I N T E N T
+Convert one class’s interface into the one clients expect, 
+without changing either side.
+S E E N I N
+Arrays.asList() (array → List) and InputStreamReader (bytes 
+→ characters).
+U S E W H E N
+You must reuse a legacy or third-party class with the wrong 
+interface.
+J A V A
+class XmlToJsonAdapter implements ReportTarget {
+  private LegacyXmlService legacy;
+ 
+  public String getJson() {
+    String xml = legacy.getXml();     // old format
+    return Converter.xmlToJson(xml);  // new format
+  }
+}
+Design Patterns
+17
+STRUCTURAL PATTERN
+Decorator
+Add responsibilities by wrapping objects
+Whip  +$0.40
+Mocha  +$0.70
+Milk  +$0.50
+Espresso  $2.00
+cost() = 2.00 + 0.50 + 0.70 + 0.40 = $3.60
+I N T E N T
+Attach new behavior to an object dynamically by wrapping it 
+in objects that share its interface.
+W H Y
+Subclassing every combination (milk + mocha + whip…) 
+explodes into dozens of classes. Wrapping composes 
+behavior at runtime.
+J A V A
+Coffee c = new Espresso();      // $2.00
+c = new Milk(c);                // + $0.50
+c = new Mocha(c);               // + $0.70
+c = new Whip(c);                // + $0.40
+System.out.println(c.cost());   // 3.60
+Seen in: new BufferedReader(new FileReader(path))
+Design Patterns
+18
+STRUCTURAL PATTERN
+Facade
+One simple entry point to a complex subsystem
+Client
+HomeTheater
+Facade
+watchMovie()
+Lights
+Screen
+Projector
+Amplifier
+Player
+complex subsystem
+5 → 1
+calls the client has to make
+I N T E N T
+Provide a simple interface to a library, 
+framework or set of classes.
+J A V A
+class HomeTheaterFacade {
+  void watchMovie(String t) {
+    lights.dim(10);
+    screen.down();
+    projector.on();
+    amp.setVolume(5);
+    player.play(t);
+  }
+}
+Design Patterns
+19
+STRUCTURAL PATTERN
+Composite
+Treat single objects and groups uniformly
+project/
+= 24 KB
+src/
+= 20 KB
+README.md
+4 KB
+Main.java
+12 KB
+Util.java
+8 KB
+Composite (has children)
+Leaf
+I N T E N T
+Compose objects into tree structures and let clients treat 
+leaves and groups through one interface.
+U S E W H E N
+Your data is naturally a tree: file systems, UI widgets, org 
+charts, menus.
+J A V A
+interface Item { long size(); }
+ 
+class File implements Item {
+  public long size() { return bytes; }
+}
+class Folder implements Item {
+  List<Item> children;
+  public long size() {
+    return children.stream()
+        .mapToLong(Item::size).sum();
+  }
+}
+Design Patterns
+20
+STRUCTURAL PATTERNS
+Proxy, Bridge & Flyweight
+Client
+Proxy
+Service
+cache · lazy-load · access check
+Proxy
+A stand-in that controls access to 
+the real object: lazy loading, 
+caching, permission checks, 
+logging.
+S E E N I N
+Spring AOP, Hibernate lazy-loading 
+proxies
+Remote
+Device
+bridge
+Basic
+Advanced
+TV
+Radio
+Bridge
+Split a class into an abstraction 
+and an implementation hierarchy 
+so each can vary on its own.
+S E E N I N
+Shapes + drawing APIs; remotes + 
+devices
+TreeType (shared)
+Flyweight
+Share the common (intrinsic) state 
+between many objects to save 
+memory; keep only the unique 
+state per object.
+S E E N I N
+Java String pool, Integer.valueOf() 
+cache
+Design Patterns
+21
+03
+Behavioral Patterns
+How objects communicate, cooperate and share 
+responsibility
+Strategy
+Observer
+Command
+State
+Chain of Responsibility
+Template Method
+Iterator
+Mediator
+Memento
+Visitor
+BEHAVIORAL PATTERNS
+How objects talk to each other
+H1
+H2
+H3
+H4
+request → handled by H3
+Chain of Responsibility
+Pass a request along a chain of 
+handlers until one of them deals 
+with it.
+Hub
+Mediator
+Objects talk through a central hub 
+instead of directly to each other, like 
+air-traffic control.
+Subject
+Observer
+One change is announced to many 
+subscribers, who react on their own.
+B E H A V I O R A S A N O B J E C T , p a s s i t a r o u n d , s w a p i t , s t o r e i t
+Strategy
+Command
+State
+Template Method
+Visitor
+Iterator
+Memento
+Design Patterns
+23
+BEHAVIORAL PATTERN
+Observer
+Notify many objects when one object changes
+Channel (Subject)
++ subscribe(s)
++ unsubscribe(s)
++ upload(video)
+«Subscriber»
+PhoneApp
++ update(video)
+«Subscriber»
+EmailDigest
++ update(video)
+«Subscriber»
+Dashboard
++ update(video)
+update()
+new video uploaded
+Analogy: a newspaper subscription. Subscribe and every issue 
+arrives; cancel and it stops, the publisher never needs to know 
+who is reading.
+I N T E N T
+Define a one-to-many dependency so that dependents 
+are notified automatically when the subject changes.
+J A V A
+interface Subscriber { void update(String v); }
+ 
+class Channel {
+  List<Subscriber> subs = new ArrayList<>();
+ 
+  void subscribe(Subscriber s) { subs.add(s); }
+  void upload(String v) {
+    subs.forEach(s -> s.update(v));
+  }
+}
+Seen in: DOM addEventListener, Redux/React 
+subscriptions, pub/sub messaging
+Design Patterns
+24
+BEHAVIORAL PATTERN
+Strategy
+Swap algorithms at runtime through a common interface
+Cart (Context)
+- strategy
++ checkout(total)
+«interface»
+PaymentStrategy
++ pay(amount)
+CardPayment
++ pay(amount)
+PayPalPayment
++ pay(amount)
+CashOnDelivery
++ pay(amount)
+B E F O R E
+if (type == "card") …
+else if (type == "paypal") …
+Every new payment method means editing Cart.
+I N T E N T
+Define a family of algorithms, put each in its own class, 
+and make them interchangeable.
+U S E W H E N
+You want to switch behavior at runtime or replace big 
+conditionals with polymorphism.
+J A V A
+interface PaymentStrategy { void pay(double a); }
+ 
+class Cart {
+  PaymentStrategy strategy;
+  void setStrategy(PaymentStrategy s) {
+    strategy = s;
+  }
+  void checkout(double t) { strategy.pay(t); }
+}
+cart.setStrategy(new PayPalPayment());
+Design Patterns
+25
+BEHAVIORAL PATTERN
+Command
+Turn a request into an object, enabling undo, queues and logs
+Toolbar
+(Invoker)
+«interface»
+Command
++ execute()
++ undo()
+TypeText
++ execute()
++ undo()
+«Receiver»
+Document
++ insert(text)
++ delete(n)
+H I S T O R Y 
+S T A C K
+Paste
+Bold
+Type "Hi"
+Ctrl+Z pops the top 
+and calls undo()
+Use when: undo/redo, queuing or scheduling operations, macro 
+recording, transactional operations, remote calls.
+I N T E N T
+Encapsulate a request as an object so it can be 
+stored, queued, logged and undone.
+J A V A
+class TypeText implements Command {
+  Document doc; String text;
+ 
+  public void execute() {
+    doc.insert(text);
+  }
+  public void undo() {
+    doc.delete(text.length());
+  }
+}
+ 
+history.push(cmd);  cmd.execute();
+history.pop().undo();   // Ctrl+Z
+Design Patterns
+26
+BEHAVIORAL PATTERN
+State
+An object changes its behavior when its internal state changes
+Draft
+Moderation
+Published
+submit()
+approve()
+reject()
+I N T E N T
+Let an object alter its behavior when its state changes.
+A N A L O G Y
+A vending machine acts differently when idle, holding coins or 
+dispensing.
+State vs Strategy: states switch themselves; a client 
+picks a strategy.
+J A V A
+interface State { void next(Doc d); }
+ 
+class Draft implements State {
+  public void next(Doc d) { d.setState(new Moderation()); }
+}
+class Moderation implements State {
+  public void next(Doc d) { d.setState(new Published()); }
+}
+// Doc delegates:  state.next(this);
+Design Patterns
+27
+BEHAVIORAL PATTERNS
+More behavioral patterns
+Chain of Responsibility
+Support tickets escalate from level 1 
+to level 2 to a manager until someone 
+handles them.
+Seen in: Servlet filters, middleware
+Template Method
+A recipe skeleton: subclasses fill in 
+the steps that differ.
+Seen in: setUp() / tearDown() hooks
+Iterator
+Walk through a collection without 
+knowing how it is stored.
+Seen in: The for-each loop
+Mediator
+Air-traffic control: planes talk to the 
+tower, not to each other.
+Seen in: Chat rooms, UI dialogs
+Memento
+A save-game snapshot lets you 
+restore an earlier state.
+Seen in: Undo history, snapshots
+Visitor
+Apply a new operation across 
+different object types without editing 
+their classes.
+Seen in: Compilers, AST walkers
+Design Patterns
+28
+IN PRACTICE
+You already use patterns
+Pattern
+Where you have already met it
+Singleton
+Runtime.getRuntime(); application-wide loggers and configuration objects
+Factory Method
+Calendar.getInstance(), List.of(…), framework “create…” hooks
+Builder
+HttpRequest.newBuilder(), Lombok @Builder
+Adapter
+Arrays.asList() (array → List), InputStreamReader (bytes → characters)
+Decorator
+new BufferedReader(new FileReader(path)) and other java.io wrappers
+Proxy
+Spring AOP and Hibernate lazy-loading proxies
+Observer
+Browser addEventListener; React / Redux state subscriptions
+Strategy
+A Comparator passed to Collections.sort()
+Iterator
+The for-each loop over any Iterable
+Design Patterns
+29
+IN PRACTICE
+Choosing the right pattern
+Start from the pain you feel, not from the pattern name
+Creating objects is painful?
+Need exactly one shared instance
+Singleton
+Constructor with 10 optional 
+parameters
+Builder
+Class to create is unknown until 
+runtime
+Factory Method
+Wiring objects is painful?
+An old API does not match the new 
+interface
+Adapter
+Adding features causes subclass 
+explosion
+Decorator
+Client drowns in subsystem calls
+Facade
+Object interaction is painful?
+Swap algorithms at runtime
+Strategy
+Many objects must react to one 
+change
+Observer
+Need undo/redo or queued 
+requests
+Command
+Design Patterns
+30
+CRITICAL VIEW
+Use patterns wisely
+16 / 23
+GoF patterns that Peter Norvig 
+showed are simplified or eliminated 
+by language features in Lisp or 
+Dylan.
+Rule of thumb  
+Start simple (KISS, YAGNI). Refactor 
+toward a pattern when real pain appears: 
+duplicated code, ripple-effect changes.
+Over-engineering
+When you own a hammer, 
+everything looks like a nail. Do 
+not add patterns “just in case”.
+Language 
+workarounds
+Some patterns compensate for 
+missing language features, 
+such as first-class functions.
+Copy-paste adoption
+Applying a pattern unchanged, 
+without adapting it, can add 
+duplication and inefficiency.
+Fuzzy foundations
+Critics call patterns ad hoc and 
+not always distinct from 
+ordinary abstraction, MVC 
+predates them.
+Design Patterns
+31
+HANDS-ON
+Class activity: refactor the notifier
+Work in pairs · 15 minutes · sketch the classes before coding
+B E F O R E
+class Notifier {
+  void send(String type, String msg, User u) {
+    if (type.equals("email")) {
+      // connect SMTP, format HTML ...
+    } else if (type.equals("sms")) {
+      // call SMS gateway ...
+    } else if (type.equals("push")) {
+      // call push service ...
+    }
+    log(msg);       // copy-pasted everywhere
+  }
+}
+H I N T S
+Strategy
+Observer
+Decorator
+Factory Method
+1
+Spot the smells
+Which code must change every time we add a 
+new channel?
+2
+Extract the channels
+Put each channel behind an interface, which 
+pattern?
+3
+React to events
+Let users subscribe to the events they care 
+about.
+4
+Add cross-cutting behavior
+Add logging and retry without touching any 
+channel class.
+Design Patterns
+32
+Key
+takeaways
+1
+Patterns are blueprints, named solutions you 
+adapt, not code you paste.
+2
+Three families: Creational (create), Structural 
+(compose), Behavioral (communicate).
+3
+Learn the intent and the problem first; the UML 
+comes second.
+4
+Program to interfaces, favor composition, 
+encapsulate what varies.
+5
+Reach for a pattern to relieve real pain, not to 
+decorate code.
+REFERENCES
+Resources & next steps
+Refactoring.Guru
+Illustrated catalog with analogies, 
+structure diagrams and code in 
+many languages.
+refactoring.guru/design-patterns
+SourceMaking
+Concise pattern descriptions, plus 
+anti-patterns and refactoring guides.
+sourcemaking.com/design_patterns
+T H E O R I G I N A L
+Design Patterns: Elements of Reusable Object-
+Oriented Software
+Gamma, Helm, Johnson, Vlissides (1994)
+Content summarised in original wording from the three sources above; all diagrams were drawn for this deck.
+Design Patterns
+34

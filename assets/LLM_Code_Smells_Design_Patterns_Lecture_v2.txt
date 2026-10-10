@@ -1,0 +1,737 @@
+LLM Code Smells
+Designing maintainable, reliable and robust software that 
+integrates large language models
+Md Saeed Siddik
+Assistant Professor,
+Institute of IT, University of Dhaka
+2
+Learning Objectives
+B Y T H E E N D O F T H I S L E C T U R E
+1
+Distinguish LLM code smells from bugs, prompt smells, and smells 
+in LLM-generated code.
+2
+Explain the nine-smell taxonomy: Structural / API-usage, Data-
+semantics and Protocol smells.
+3
+Recognize each smell in real integration code and describe its 
+impact on quality.
+4
+Refactor smelly code using design patterns such as Facade, 
+Factory Method, Strategy and Adapter.
+5
+Evaluate what static analysis can and cannot detect.
+T H E B I G I D E A
+An LLM call is a software 
+component.
+Like any component, it 
+deserves an explicit 
+contract: and design 
+patterns are how we make 
+that contract enforceable.
+3
+Why Do We Need LLM-Specific Code Smells?
+M O T I V A T I O N
+TRADITIONAL COMPONENT
+•
+Deterministic interface
+•
+Known configuration semantics
+•
+Predictable execution behaviour
+•
+Stable across deployments
+LLM COMPONENT
+•
+Non-deterministic output
+•
+Natural-language interface
+•
+Provider- and model-specific 
+parameters
+•
+Behaviour changes over time: 
+even without code changes
+DESIGN CONSEQUENCE
+The API call alone is not 
+enough.
+We need an explicit inference contract 
+that names the model, instructions, 
+output shape, sampling policy, 
+resource limits and traceability.
+Classic GoF smells still apply. These are 
+additional smells that only exist because of 
+how LLMs behave.
+Chenail-Larcher et al. (2026) highlight non-determinism, distinct hyperparameters and natural-language interaction as sources of integration risk.
+4
+What Is an LLM Code Smell?
+D E F I N I T I O N
+“A recurring, low-level coding practice in human-written source 
+code that integrates or orchestrates LLM/VLM inference and 
+degrades software quality: without necessarily being an explicit 
+bug.”
+IT IS NOT THE SAME AS…
+Smells in LLM-generated code  quality of code an LLM wrote
+Prompt smells  quality of the prompt text itself
+System-level failures  hallucination, jailbreaks, RAG drift
+Model-quality problems  accuracy of the model
+FOUR QUALITY ATTRIBUTES AT RISK
+Robustness
+Resilience under 
+errors and 
+unexpected inputs
+Performance
+Latency, memory, 
+compute and 
+monetary cost
+Maintainability
+Reproducibility, 
+portability, traceability, 
+observability
+Reliability
+Correctness, 
+consistency and 
+behavioural stability
+Definition and quality attributes from the taxonomy paper (Chenail-Larcher et al., 2026).
+5
+The Nine-Smell Taxonomy
+T H R E E C A T E G O R I E S
+Structural / API usage
+How the call is shaped and what it carries
+NSM
+No System Message
+OSP
+Overspecified Sampling 
+Parameters
+AIC
+Anonymous Inference 
+Call
+Data semantics
+What goes in and what comes out
+NSO
+No Structured Output
+RVP
+Raw Vision Payload
+Protocol
+Which configuration governs the inference
+NMVP
+No Model Version 
+Pinning
+TNES
+Temperature Not 
+Explicitly Set
+UMM
+Unbounded Max Metrics
+RENES
+Reasoning Effort Not 
+Explicitly Set
+Protocol smells account for 79.3% of all occurrences reported in the large-scale study of 692 open-source projects.
+6
+Think of an LLM Call as a Contract
+M E N T A L M O D E L
+1
+Input
+•
+Prompt / messages
+•
+Images
+•
+User & session 
+context
++
+2
+Model
+•
+Pinned model version
+•
+Reasoning effort
+•
+Sampling policy
++
+3
+Boundary
+•
+Token limit
+•
+Timeout
+•
+Retries
+•
+Output schema
++
+4
+Trace
+•
+User attribution
+•
+Logs & run metadata
+•
+Config version
+Each of the nine smells is a missing or implicit clause in this contract. Design patterns give us places to write 
+the clauses down: once: and enforce them.
+Teaching synthesis of the taxonomy: the study recommends making critical inference configuration explicit and centralised.
+7
+NSM: No System Message
+S M E L L 1 O F 9  ·  S T R U C T U R A L / A P I U S A G E
+S M E L L Y
+messages = [
+    {"role": "user", "content": user_prompt}
+]
+response = client.chat.completions.create(
+    model=MODEL, messages=messages)
+R E F A C T O R E D
+messages = [
+    {"role": "system", "content": SYSTEM_POLICY},
+    {"role": "user", "content": user_prompt},
+]
+# SYSTEM_POLICY: versioned, reviewed, stable
+PROBLEM
+No stable global role, goals or constraints. 
+Every behaviour depends on whatever the 
+user typed.
+REFACTOR
+Treat the system-level instruction as a first-
+class, versioned artifact that every call 
+receives.
+DESIGN PATTERN LINK
+Template Method / Strategy: a stable 
+instruction scaffold with a variable user part.
+25.3%
+of the 692 studied projects 
+contained at least one NSM 
+occurrence.
+NSM concerns instruction hierarchy and behavioural alignment; hidden middleware can make static detection uncertain.
+8
+OSP: Overspecified Sampling Parameters
+S M E L L 2 O F 9  ·  S T R U C T U R A L / A P I U S A G E
+S M E L L Y
+response = client.generate(
+    prompt,
+    temperature=0.8,
+    top_p=0.95,
+    top_k=40,
+)  # three interacting randomness controls
+R E F A C T O R E D
+# One primary control, with a documented rationale
+response = client.generate(
+    prompt,
+    temperature=0.2,  # deterministic-ish: grading task
+)
+PROBLEM
+Multiple randomness controls interact; 
+tuning and reproducing behaviour becomes 
+guesswork.
+REFACTOR
+Use a minimal, documented sampling 
+contract: one primary control with a stated 
+reason.
+DESIGN PATTERN LINK
+Strategy: encapsulate a named decoding 
+policy (e.g. Deterministic, Creative).
+13.4%
+of projects showed 
+overspecified sampling 
+parameters.
+OSP is associated with decoding behaviour that is harder to reason about and to reproduce.
+9
+AIC: Anonymous Inference Call
+S M E L L 3 O F 9  ·  S T R U C T U R A L / A P I U S A G E
+S M E L L Y
+def answer(prompt):
+    return client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": prompt}],
+    )  # who asked? which session?
+R E F A C T O R E D
+def answer(prompt, session_id):
+    return client.chat.completions.create(
+        model=MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        user=pseudonymize(session_id),  # traceable
+    )
+PROBLEM
+A multi-user call carries no recoverable user 
+or session attribution.
+REFACTOR
+Propagate a stable, pseudonymous 
+identifier through the wrapper into every call.
+DESIGN PATTERN LINK
+Context Object / Facade: request-scoped 
+metadata travels with the call.
+0.7%
+of projects: rare, but it 
+undermines auditing and 
+incident response.
+AIC weakens traceability and user-scoped auditing; the exact provider mechanism may evolve.
+10
+NSO: No Structured Output
+S M E L L 4 O F 9  ·  D A T A S E M A N T I C S
+S M E L L Y
+response = client.responses.create(
+    model=MODEL, input=prompt)
+result = json.loads(response.output_text)
+# hopes the model returned valid JSON
+R E F A C T O R E D
+response = client.responses.parse(
+    model=MODEL, input=prompt,
+    text_format=GradeReport,  # Pydantic schema
+)
+result: GradeReport = response.output_parsed
+PROBLEM
+Free-form text is treated as schema-
+compliant data: missing fields, type errors, 
+brittle parsing.
+REFACTOR
+Enforce a JSON / schema contract at the 
+API boundary and validate before use.
+DESIGN PATTERN LINK
+Adapter: convert the provider response into 
+a typed domain object.
+43.6%
+of projects parsed 
+unstructured output as if it 
+were structured.
+Schema mismatch can cause missing fields, type errors and brittle downstream parsing.
+11
+RVP: Raw Vision Payload
+S M E L L 5 O F 9  ·  D A T A S E M A N T I C S
+S M E L L Y
+image_bytes = open("scan_original.png", "rb").read()
+prompt = build_prompt(image_bytes)
+# 12 MB, full resolution, unredacted
+R E F A C T O R E D
+img = load("scan_original.png")
+img = resize(img, max_side=1024)
+img = compress(img, quality=80)
+img = redact_faces_and_ids(img)
+assert size(img) < MAX_IMAGE_BYTES
+prompt = build_prompt(img)
+PROBLEM
+Raw images leak private data, inflate tokens 
+and cost, and slow every request.
+REFACTOR
+Preprocess and bound image payloads 
+before inference: resize, compress, redact, 
+limit.
+DESIGN PATTERN LINK
+Pipeline / Chain of Responsibility: 
+composable input-hygiene steps.
+18.9%
+of projects sent raw vision 
+payloads to the model.
+Recommended mitigation includes resizing, compression, redaction and explicit size limits.
+12
+NMVP: No Model Version Pinning
+S M E L L 6 O F 9  ·  P R O T O C O L
+S M E L L Y
+response = client.chat.completions.create(
+    model="gpt-4o",  # floating alias
+    messages=messages)
+# provider updates silently change behaviour
+R E F A C T O R E D
+MODEL = "gpt-4o-2024-11-20"  # immutable snapshot
+response = client.chat.completions.create(
+    model=MODEL,
+    messages=messages)
+log_run(model=MODEL, config_version=CFG_VERSION)
+PROBLEM
+Provider-side updates change behaviour 
+without any change in your source code.
+REFACTOR
+Pin an immutable model identifier, record it 
+in run metadata, and upgrade deliberately.
+DESIGN PATTERN LINK
+Factory Method + versioned configuration: 
+upgrades become explicit code changes.
+55.1%
+of projects: the most 
+common smell (52.8% of all 
+occurrences).
+NMVP is the dominant smell in the large-scale study.
+13
+TNES: Temperature Not Explicitly Set
+S M E L L 7 O F 9  ·  P R O T O C O L
+S M E L L Y
+response = client.chat.completions.create(
+    model=MODEL,
+    messages=messages,
+    # temperature omitted -> provider default
+)
+R E F A C T O R E D
+response = client.chat.completions.create(
+    model=MODEL,
+    messages=messages,
+    temperature=0.0,  # reproducible grading
+)
+PROBLEM
+Implicit defaults differ across providers, 
+models and updates: results drift silently.
+REFACTOR
+Make the sampling policy explicit in code 
+and document why that value was chosen.
+DESIGN PATTERN LINK
+Configuration Object / Factory: one place 
+owns the sampling policy.
+43.9%
+of projects left temperature 
+to the provider default.
+TNES weakens reproducibility and behavioural consistency when temperature is delegated to defaults.
+14
+UMM: Unbounded Max Metrics
+S M E L L 8 O F 9  ·  P R O T O C O L
+S M E L L Y
+client = OpenAI()
+response = client.responses.create(
+    model=MODEL, input=prompt)
+# no output bound, no timeout, no retry budget
+R E F A C T O R E D
+client = OpenAI(timeout=30, max_retries=2)
+response = client.responses.create(
+    model=MODEL, input=prompt,
+    max_output_tokens=512,
+)
+monitor_input_tokens(prompt)
+PROBLEM
+Runaway latency, cost and memory; one 
+slow call can cascade into system-wide 
+failure.
+REFACTOR
+Bound max output tokens, timeout and 
+retries; monitor input size.
+DESIGN PATTERN LINK
+Gateway / Facade: operational policy is 
+centralised and auditable.
+42.1%
+of projects had unbounded 
+token, timeout or retry 
+settings.
+The paper's remedy: explicitly bound max output tokens, timeout and max retries.
+15
+RENES: Reasoning Effort Not Explicitly Set
+S M E L L 9 O F 9  ·  P R O T O C O L
+S M E L L Y
+# reasoning-capable model
+response = client.responses.create(
+    model="o3-2025-04-16",
+    input=prompt,
+    # reasoning effort omitted
+)
+R E F A C T O R E D
+response = client.responses.create(
+    model="o3-2025-04-16",
+    input=prompt,
+    reasoning={"effort": "low"},  # fast FAQ path
+)
+PROBLEM
+The accuracy / latency / cost trade-off is left 
+implicit and invisible to reviewers.
+REFACTOR
+Explicitly configure reasoning effort 
+wherever the model and API support it.
+DESIGN PATTERN LINK
+Strategy / Policy: the inference mode is a 
+named, swappable choice.
+0.9%
+of projects: new, but 
+growing with reasoning-
+capable models.
+RENES is defined for reasoning-capable models; effort controls a trade-off between accuracy, latency and cost.
+16
+How Common Are These Smells?
+E V I D E N C E · 6 9 2 P R O J E C T S , 1 7 1 , 1 9 4 F I L E S
+0.7%
+0.9%
+13.4%
+18.9%
+25.3%
+42.1%
+43.6%
+43.9%
+55.1%
+AIC
+RENES
+OSP
+RVP
+NSM
+UMM
+NSO
+TNES
+NMVP
+73.6%
+of projects contain at least one 
+LLM code smell
+PATTERN IN THE DATA
+Smells are widespread across 
+projects but concentrated in a small 
+subset of files: the client factories, 
+wrappers and orchestration modules.
+Project-level prevalence, Chenail-Larcher et al. (2026). Percentages = share of the 692 projects with at least one occurrence.
+17
+What Does the Evidence Suggest?
+T H R E E T A K E - A W A Y S
+1
+Protocol smells dominate
+79.3% of detector occurrences were NMVP, TNES, UMM or RENES. The 
+common theme: implicit defaults and unstable configuration.
+2
+Debt is localised
+Smells cluster in client factories, wrappers and orchestration modules: not 
+across the whole codebase. That makes them cheap to fix.
+3
+Centralise the policy
+A single wrapper / client abstraction can enforce defaults, resource limits, 
+logging, versioning and structured output at one auditable boundary.
+Implications discussed explicitly in the large-scale study (Chenail-Larcher et al., 2026).
+18
+Putting It Together: Before → After
+W O R K E D R E F A C T O R I N G
+B E F O R E : A T Y P I C A L H E L P E R
+def ask(prompt):
+    client = OpenAI()
+    r = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{"role": "user",
+                   "content": prompt}],
+    )
+    return r.choices[0].message
+            .content.split(":")[1]
+# NMVP  NSM  TNES  UMM  NSO  AIC
+# six smells in nine lines
+→
+A F T E R : O N E A U D I T A B L E B O U N D A R Y
+class LLMGateway:                    # Facade
+    MODEL = "gpt-4o-2024-11-20"      # NMVP
+    def __init__(self, client=None):
+        self.client = client or make_client(
+            timeout=30, max_retries=2)  # Factory, UMM
+    def ask(self, prompt, user_id, schema):
+        r = self.client.chat.completions.parse(
+            model=self.MODEL,
+            messages=[{"role":"system","content":POLICY},
+                      {"role":"user","content":prompt}], # NSM
+            temperature=0.0,                  # TNES
+            max_tokens=512,                   # UMM
+            response_format=schema,           # NSO
+            user=pseudonymize(user_id),       # AIC
+        )
+        return schema.from_response(r)        # Adapter
+Illustrative Python using the OpenAI SDK; the same structure applies to any provider.
+19
+LLM Code Smells × Design Patterns
+M A P P I N G T O T H E G O F V O C A B U L A R Y
+Pattern
+Intent (GoF)
+What it enforces for LLM calls
+Smells addressed
+Facade / Gateway
+One unified entry point to a 
+subsystem
+Bounds, logging, model policy, output validation at a 
+single boundary
+UMM, AIC, NSO, NSM
+Factory Method
+Centralise object creation
+Pinned versions, provider configuration, consistent 
+defaults for every client
+NMVP, TNES, UMM
+Strategy
+Interchangeable algorithms behind 
+one interface
+Named sampling, reasoning-effort and vision-
+preprocessing policies
+OSP, TNES, RENES, 
+RVP
+Adapter
+Convert one interface into another
+Provider-specific responses become stable, typed 
+domain objects
+NSO
+Template Method
+Fix the skeleton, vary the steps
+Stable system instruction scaffold with a variable user 
+part
+NSM
+Chain of Responsibility
+Pass a request along a chain of 
+handlers
+Composable input-hygiene steps: resize → compress 
+→ redact → limit
+RVP
+Pattern mappings are instructional applications of the papers' remediation guidance, not prescriptions from the sources.
+20
+A Smell-Resistant LLM Integration Architecture
+L A Y E R S
+Application / use cases
+Chatbot, grader, summariser: never calls a provider 
+directly
+LLM Facade / Gateway
+Single entry point: bounds, logging, validation, 
+attribution
+Policy & configuration
+Pinned models, sampling & reasoning strategies, 
+schemas, system policy
+Provider adapters
+OpenAI, Anthropic, local: translated into one domain 
+interface
+Observability & evaluation
+Run metadata, traces, cost, regression tests in CI
+RULE OF THUMB
+Application code should never see a 
+provider SDK. If a smell can only be fixed 
+in one file, that file is the gateway.
+WHAT GOES WHERE
+Wrapper: model, bounds, policy, 
+validation, tracing.
+Application: prompt content, domain 
+logic, what to do with the typed result.
+Teaching architecture derived from the study's recommendation to centralise provider calls in a wrapper / client abstraction.
+21
+Can We Detect LLM Code Smells Automatically?
+T O O L I N G · S P E C D E T E C T 4 L L M
+1
+Find an LLM call in 
+the AST
+›
+2
+Recover local 
+configuration
+›
+3
+Apply the smell 
+rule
+›
+4
+Report the 
+violation
+HOW IT WORKS
+A static analyser derived from SpecDetect4AI. Detection rules 
+operate over Python abstract syntax trees and use LLM-
+specific semantic predicates (e.g. “is this argument a model 
+identifier?”, “is temperature set on this call?”).
+381
+annotated files 
+used to validate 
+detection
+0.913
+macro precision
+0.718
+macro recall
+Detection approach and reported effectiveness, Chenail-Larcher et al. (2026).
+Your Next Assigment 
+HOW IT WORKS
+Collect data from huggingface and 
+detect LLM Smells there 
+22
+But Static Detection Has Limits
+R E A D W A R N I N G S C R I T I C A L L Y
+Intra-file evidence only
+The analyser sees what is locally recoverable inside one file.
+Indirection hides constraints
+Cross-file wrappers, factories and runtime configuration are invisible to it.
+False positives
+Policy enforced elsewhere still looks like a missing parameter.
+False negatives
+Framework abstractions can hide a smelly call entirely.
+T H E R E F O R E
+A tool warning is a review 
+signal: not an automatic 
+proof of a design defect.
+Ironically, the Facade that fixes the smells is 
+exactly what makes them harder to detect 
+statically. Good architecture and good 
+tooling must be designed together.
+The paper explicitly discusses intra-file / static-analysis limitations and their effect on false positives and negatives.
+23
+Smell or Good Design?
+1 0 M I N U T E S · P A I R S
+SCENARIO
+A university help-desk chatbot uses one shared LLM client. 
+Code review reveals:
+• model = "latest"
+• no timeout
+• no max output tokens
+• temperature omitted
+• raw user prompt only: no system message
+• free-form reply parsed with split(':')
+• every request includes session_id
+Task: name the smells, then propose a refactoring architecture.
+DISCUSSION QUESTIONS
+1
+Which smell would you fix first, and why?
+2
+Which pattern centralises the most fixes?
+3
+What belongs in the wrapper vs. in application 
+code?
+4
+Which of these properties should CI test for?
+Hint: one item in the list is not a smell. Which one, and 
+which smell does it prevent?
+24
+LLM Integration Code Review Checklist
+T A K E T H I S T O Y O U R N E X T C O D E R E V I E W
+Is the model identifier pinned and 
+recorded?
+NMVP
+Are output tokens, timeout and 
+retries bounded?
+UMM
+Is the sampling policy explicit and 
+minimal?
+TNES · OSP
+Is reasoning effort explicit when 
+applicable?
+RENES
+Is there a stable system-level 
+instruction?
+NSM
+Is output structure enforced and 
+validated?
+NSO
+Are vision inputs preprocessed 
+and size-bounded?
+RVP
+Is user / session attribution 
+propagated?
+AIC
+Are provider calls centralised 
+behind one auditable abstraction?
+All
+Checklist synthesised from the smell definitions and actionable guidance in the two source papers.
+25
+Summary
+T H R E E T H I N G S T O R E M E M B E R
+1
+LLMs are components
+Treat every LLM call as a software 
+component with an explicit contract: 
+model, instructions, output, sampling, 
+limits, trace.
+2
+Smells are design 
+signals
+A smell may not be a bug: but it 
+marks a recurring risk to robustness, 
+performance, maintainability or 
+reliability.
+3
+Patterns are the fix
+Facade, Factory Method, Strategy, 
+Adapter and Template Method make 
+integration policy explicit, centralised 
+and testable.
+Good LLM engineering  =  explicit behaviour  +  bounded resources  +  stable interfaces  +  observable 
+execution
+26
+References
+P R I M A R Y S O U R C E S
+1
+Chenail-Larcher, Z., Mahmoudi, B., Moha, N., Stiévenart, Q., & Avellaneda, F. (2026). LLM Code Smells: A Taxonomy and 
+Detection Approach. arXiv:2605.22976v1.: Nine-smell taxonomy, large-scale study of 692 projects, SpecDetect4LLM.
+2
+Mahmoudi, B., Chenail-Larcher, Z., Moha, N., Stiévenart, Q., & Avellaneda, F. (2026). Specification and Detection of LLM 
+Code Smells. ICSE-NIER ’26.: Earlier paper introducing the first five smells and the specification approach.
+3
+Gamma, E., Helm, R., Johnson, R., & Vlissides, J. (1994). Design Patterns: Elements of Reusable Object-Oriented 
+Software. Addison-Wesley.: Facade, Factory Method, Strategy, Adapter, Template Method, Chain of Responsibility.
+All prevalence figures, precision/recall values and smell definitions on these slides are taken from the first paper.

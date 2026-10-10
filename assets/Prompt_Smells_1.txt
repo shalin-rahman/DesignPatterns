@@ -1,0 +1,551 @@
+D E S I G N P A T T E R N S
+Prompt Smells
+From Code Smells to Prompt Design , Recognizing, Diagnosing, and 
+Refactoring Bad Prompts
+9
+Teaching-focused 
+prompt smells
+2
+Research 
+foundations (2024 / 
+2026)
+1
+Refactoring mindset, 
+borrowed from 
+code
+Ronanki, Cabrero-Daniel & Berger (2024)  ·  Della Porta et al. (2026)
+1 · THE CORE IDEA
+From Code Smells to Prompt Smells
+What is a code smell?
+A surface sign in source code that something may be wrong 
+beneath , not a bug, but a warning.
+Familiar example: Long Method
+A method doing too much is hard to read, test, and reuse. 
+Developers recognize it on sight.
+How developers respond
+They refactor: split responsibilities, clarify names, isolate 
+behavior , without changing what the code does.
+The same idea, applied to prompts
+A prompt can also carry warning signs. Ronanki et al. (2024) 
+call these prompt smells.
+C O D E
+Bad code  →  Long Method  →  refactored code
+One giant method handling validation, calculation, and
+output is split into small, named, single-purpose methods.
+P R O M P T
+Bad prompt  →  Prompt Bloat  →  refactored 
+prompt
+An over-decorated persona and buried request are
+reduced to a direct, well-scoped instruction.
+A prompt smell is a surface-level indicator in a prompt's wording or structure that correlates with a higher risk of an undesirable 
+AI response.
+Part 0 · Framing the Concept
+Prompt Smells
+1 · THE CORE IDEA
+A Prompt Smell Is a Warning Sign , Not a Bug
+1
+A prompt can smell and 
+still work
+A prompt with a smell may still 
+produce a good answer. The model 
+can compensate.
+2
+A clean prompt can still 
+fail
+A prompt with no obvious smell can 
+still produce a poor, generic, or off-
+target answer.
+3
+So why does this matter?
+Smells raise the probability of a bad 
+outcome , shifting the odds is why 
+prompt quality needs evaluation, 
+not just intuition.
+C L A S S R O O M P R O M P T
+“Tell me about databases.”
+Ask the class:
+Is this wrong?  No.
+Is it well specified?  Probably not.
+Part 0 · Framing the Concept
+Prompt Smells
+1 · THE CORE IDEA
+A Research-Based View of Prompt Smells
+2024
+Ronanki, Cabrero-Daniel & Berger introduce 
+“prompt smells” as an omen for undesirable 
+generative-AI outputs , the founding concept.
+2026
+Della Porta et al. investigate how to measure 
+prompt quality, proposing a preliminary taxonomy 
+of prompt-smell dimensions.
+P R E L I M I N A R Y R E S E A R C H T A X O N O M Y ( 2 0 2 6 )
+Grammar / surface form
+Structure / format
+Readability
+Contextual adequacy
+Complexity / length
+Formality mismatch
+Bias
+Our nine teaching examples are not the research taxonomy itself , they are a teaching classification derived from 
+these research dimensions, chosen for how clearly they map onto familiar code-smell intuitions.
+Part 0 · Framing the Concept
+Prompt Smells
+P A R T I
+Context & Clarity Smells
+1
+Vague / Missing Context
+2
+Ambiguous References
+3
+Format Ambiguity
+PART I  ·  SMELL 1 OF 3
+Vague / Missing Context
+C O N T E X T
+A teacher asks an AI assistant to prepare a lecture.
+W H Y I T ' S A P R O B L E M
+Who is the audience?
+What level of study?
+What aspects should be covered?
+How much detail is expected?
+SMELLY PROMPT
+“Explain software architecture.”
+↓
+REFACTORED 
+PROMPT
+“Explain software architecture to second-year Software 
+Engineering students. Cover layered, client-server, and 
+microservices architectures, with one practical example for 
+each.”
+Part I · Prompt Smell Catalogue
+Prompt Smells
+PART I  ·  SMELL 2 OF 3
+Ambiguous References
+C O N T E X T
+A software project meeting is being summarized for 
+the next steps.
+W H Y I T ' S A P R O B L E M
+Who is “they”?
+What is “it” referring to?
+Which problem , of possibly several?
+Rule of thumb: if a pronoun could refer to more than 
+one noun in the prompt, replace it with the noun.
+SMELLY PROMPT
+“The team changed it because they found a problem. Explain 
+what they should do next.”
+↓
+REFACTORED 
+PROMPT
+Name the project, the team, the specific artifact that changed, 
+and the specific problem found , before asking what should 
+happen next.
+Part I · Prompt Smell Catalogue
+Prompt Smells
+PART I  ·  SMELL 3 OF 3
+Format Ambiguity
+C O N T E X T
+A manager wants a project-risk report from the AI 
+assistant.
+W H Y I T ' S A P R O B L E M
+No output shape is specified
+“Some recommendations” has no count or 
+structure
+Priority ordering is left to chance
+Takeaway: output format is part of prompt design, not 
+an afterthought.
+SMELLY PROMPT
+“Analyze these project risks and give me some 
+recommendations.”
+↓
+REFACTORED 
+PROMPT
+“Create a table with four columns: Risk, Probability, Impact, 
+and Recommended Mitigation. Rank the risks from highest to 
+lowest priority.”
+Part I · Prompt Smell Catalogue
+Prompt Smells
+P A R T I I
+Complexity Smells
+1
+Overloaded Prompt
+2
+Prompt Bloat / Convoluted Prompt
+3
+Unnecessary Repetition
+4
+Conflicting Constraints
+PART II  ·  SMELL 1 OF 4
+Overloaded Prompt
+C O N T E X T
+A student is developing a library management 
+system.
+W H Y I T ' S A P R O B L E M
+Analogous to a method doing too many things
+Each phase needs different context to do well
+Errors in early phases silently corrupt later ones
+SMELLY PROMPT
+“Design the requirements, UML diagrams, database, 
+architecture, Java implementation, test cases, documentation 
+and presentation for a library system.”
+↓
+REFACTORED 
+PROMPT
+Split into a sequence: Requirements → Use cases → 
+Architecture → Database → Implementation → Testing , one 
+prompt, and one reviewed output, per stage.
+Part II · Prompt Smell Catalogue
+Prompt Smells
+PART II  ·  SMELL 2 OF 4
+Prompt Bloat / Convoluted Prompt
+C O N T E X T
+A user wants a Factory Method example for a 
+design-patterns course.
+W H Y I T ' S A P R O B L E M
+The real request is buried at the end
+Decorative framing adds no task-relevant 
+information
+Longer prompts are harder to verify against the 
+actual need
+SMELLY PROMPT
+“Imagine that you are a world-class software architect who 
+has spent 30 years working with enterprise systems and has 
+advised governments and Fortune 500 companies…” , 
+eventually , “Give me a Factory Method example in Java.”
+↓
+REFACTORED 
+PROMPT
+“Give me a simple Java example demonstrating the Factory 
+Method pattern. Explain the problem it solves and identify the 
+participants.”
+Part II · Prompt Smell Catalogue
+Prompt Smells
+PART II  ·  SMELL 3 OF 4
+Unnecessary Repetition
+C O N T E X T
+A student asks the AI to explain inheritance.
+W H Y I T ' S A P R O B L E M
+Same instruction repeated in different words
+No new information is added by repeating
+Directly analogous to duplicate code
+Connect to code smells: this is duplicate code, 
+restated as instructions instead of statements.
+SMELLY PROMPT
+“Explain inheritance in simple language. Keep it simple. Make 
+it easy. Don’t make it complicated. Use simple words and a 
+simple example.”
+↓
+REFACTORED 
+PROMPT
+“Explain inheritance using simple language and one Java 
+example for beginners.”
+Part II · Prompt Smell Catalogue
+Prompt Smells
+PART II  ·  SMELL 4 OF 4
+Conflicting Constraints
+C O N T E X T
+Writing an executive report for stakeholders.
+W H Y I T ' S A P R O B L E M
+“Comprehensive” and “exactly 100 words” pull in 
+opposite directions
+The model must silently choose which constraint to 
+break
+Tension is invisible until the output disappoints
+Refactoring resolves the tension by naming exactly 
+what “comprehensive” must include within the limit.
+SMELLY PROMPT
+“Write a comprehensive report covering all aspects of the 
+project in exactly 100 words.”
+↓
+REFACTORED 
+PROMPT
+“Write a 100-word executive summary covering the project’s 
+objective, three key findings, major risk, and recommendation.”
+Part II · Prompt Smell Catalogue
+Prompt Smells
+P A R T I I I
+Semantic & Quality Smells
+1
+Irrelevant / Excessive Persona
+2
+Bias / Loaded Framing
+3
+Formality / Audience Mismatch
+PART III  ·  SMELL 1 OF 3
+Irrelevant / Excessive Persona
+C O N T E X T
+A simple programming question about Java 
+interfaces.
+W H Y I T ' S A P R O B L E M
+The persona does not change what a correct 
+answer looks like
+Extra tokens spent on framing, not on the task
+Ask: does this persona actually help perform the 
+task?
+SMELLY PROMPT
+“Act as a world-renowned Nobel Prize-winning software 
+architect, cybersecurity expert, university professor, CEO and 
+technology visionary… What is a Java interface?”
+↓
+REFACTORED 
+PROMPT
+Keep a persona only when it changes the desired response , 
+otherwise, ask the question directly: “What is a Java interface?”
+Part III · Prompt Smell Catalogue
+Prompt Smells
+PART III  ·  SMELL 2 OF 3
+Bias / Loaded Framing
+C O N T E X T
+Choosing a technology approach for a new system.
+W H Y I T ' S A P R O B L E M
+“Obviously better” presumes the conclusion
+The analysis is biased before it begins
+Undermines objective, evidence-based decision-
+making
+Connects directly to unbiased requirements 
+engineering and defensible decision-making.
+SMELLY PROMPT
+“Why is microservices obviously better than monolithic 
+architecture?”
+↓
+REFACTORED 
+PROMPT
+“Compare monolithic and microservices architectures for a 
+university ERP system. Evaluate scalability, development 
+complexity, deployment, cost and maintainability.”
+Part III · Prompt Smell Catalogue
+Prompt Smells
+PART III  ·  SMELL 3 OF 3
+Formality / Audience Mismatch
+C O N T E X T
+Explaining cybersecurity concepts to senior 
+government officers.
+W H Y I T ' S A P R O B L E M
+Tone is mismatched to a formal, high-stakes 
+audience
+Casual register can undercut credibility
+Directly named in the 2026 research taxonomy
+SMELLY PROMPT
+“Yo, let’s break down zero trust and see why it’s kinda 
+awesome.”
+↓
+REFACTORED 
+PROMPT
+“Explain Zero Trust Architecture in formal but accessible 
+language for senior government officials, using a government 
+information-system example.”
+Part III · Prompt Smell Catalogue
+Prompt Smells
+P A R T I V
+Prompt Refactoring
+1
+The Prompt Refactoring Mindset
+2
+A Practical Refactoring Pattern
+3
+Full Worked Example
+4
+Mapping to Software Design Principles
+PART IV · PROMPT REFACTORING
+The Prompt Refactoring Mindset
+C O D E
+Smell
+→
+Understand intent
+→
+Refactor
+→
+Test
+P R O M P T
+Smell
+→
+Understand intent
+→
+Refactor
+→
+Test / Evaluate
+Just like refactoring never changes what a program is supposed to do, prompt refactoring never 
+changes what you're asking for , only how clearly, completely, and unambiguously you ask for it.
+Part IV · Prompt Refactoring
+Prompt Smells
+PART IV · PROMPT REFACTORING
+A Practical Refactoring Pattern
+INTENT
+What outcome do 
+you actually want?
+→
+CONTEXT
+Who / what / where 
+does this apply to?
+→
+TASK
+The specific action 
+to perform
+→
+CONSTRAINTS
+Limits: length, tone, 
+scope, exclusions
+→
+OUTPUT
+Exact shape: table, 
+list, code, format
+→
+EVALUATION
+How will you judge 
+the result?
+Then transform one bad prompt step-by-step, adding exactly one missing stage at a time so students can see which 
+change fixed what.
+E X A M P L E A P P L I C A T I O N
+“Give me a Java payment example using a design pattern.”  →  applying INTENT (clear pattern comparison) + 
+CONTEXT (varying payment methods) + TASK (implement Strategy) + OUTPUT (class structure + runnable example) 
+yields a fully specified prompt , see the worked example next.
+Part IV · Prompt Refactoring
+Prompt Smells
+PART IV · PROMPT REFACTORING
+Full Example: From Bad Prompt to Good Prompt
+SCENARIO: A university course-registration system
+v1 , Smelly
+“Design a good modern secure course registration system for our university.”
+v2 , Add context
++ Institution type, student population, existing systems it must integrate with.
+v3 , Clarify task
++ Specific deliverable: e.g. “propose the system architecture and core entities.”
+v4 , Add constraints
++ Security requirements, scale, technology constraints, timeline.
+v5 , Define output
++ “Provide a component diagram, a data model, and a short risk list.”
+Students watch the prompt being refactored incrementally , exactly like code , and see which single addition changes the output 
+most.
+Part IV · Prompt Refactoring
+Prompt Smells
+PART IV · PROMPT REFACTORING
+Prompt Smells ↔ Software Design Principles
+SOFTWARE DESIGN
+PROMPT DESIGN
+Single Responsibility
+One clear objective
+High Cohesion
+Related instructions kept together
+Low Coupling
+Avoid unnecessary dependencies between asks
+Encapsulation
+Provide only relevant context
+Interface / Contract
+Explicit, agreed output format
+Refactoring
+Prompt improvement
+Part IV · Prompt Refactoring
+Prompt Smells
+APPLIED PRACTICE
+Case Study: Requirements Engineering
+Give students a realistic requirements-engineering scenario and walk the full cycle end to end.
+1
+Bad prompt
+→
+2
+Smell detection
+→
+3
+Refactoring
+→
+4
+AI output comparison
+WHY THIS MATTERS FOR SOFTWARE ENGINEERING STUDENTS
+Requirements engineering already trains students to interrogate ambiguity, missing stakeholders, and conflicting 
+constraints. Running that same discipline on a prompt , instead of a requirements document , makes prompt quality 
+feel like a natural extension of a skill they already have, not a new one.
+Applied Practice · Case Studies
+Prompt Smells
+APPLIED PRACTICE
+Case Study: Programming / Design Pattern
+“Write code for a payment system using a suitable design pattern.”
+Students identify the ambiguity first: which pattern? which payment methods? what does “suitable” mean here?
+REFACTORED
+“Design a Java payment-processing example where the payment method can vary between 
+CreditCard, bKash, and PayPal. Use the Strategy pattern. Provide the class structure and a small 
+runnable example.”
+Now students can see how design-pattern thinking , naming the varying behavior, choosing Strategy, specifying 
+participants , improves prompts the same way it improves code.
+Applied Practice · Case Studies
+Prompt Smells
+APPLIED PRACTICE
+Classroom Activity , Prompt Smell Detector
+Give each group 5 prompts. For each one:
+1
+Identify the smell
+2
+Explain the context
+3
+Explain why it is problematic
+4
+Refactor it
+5
+Generate outputs using both
+6
+Compare the results
+Goal: make smell-spotting and refactoring a repeatable habit , the same habit students already use during 
+code review.
+Applied Practice · Case Studies
+Prompt Smells
+APPLIED PRACTICE
+Evaluation: Did Refactoring Actually Help?
+01
+Correctness
+02
+Relevance
+03
+Completeness
+04
+Format adherence
+05
+Consistency
+06
+Robustness
+07
+Traceability
+Students evaluate the smelly and refactored outputs against these criteria , turning “the refactored prompt feels better” into 
+a defensible, structured comparison.
+Applied Practice · Case Studies
+Prompt Smells
+CLOSING
+Research Limitations
+!
+Prompt-smell research is still emerging
+!
+The 2026 taxonomy is preliminary, not final
+!
+Smells are context-dependent , the same phrasing can smell in one setting and not another
+!
+A smell does not guarantee a bad output
+!
+Removing a smell does not guarantee a good output
+Treat the catalogue in this deck as a teaching tool for building intuition , not as a certified, exhaustive checklist.
+Closing
+Prompt Smells
+K E Y T A K E A W A Y S
+Designing Prompts Is a Design Discipline
+✓
+Prompt smells are warning signs, not verdicts.
+✓
+Context matters , the same prompt can be fine or flawed depending on it.
+✓
+Clear prompts reduce ambiguity for both humans and models.
+✓
+Complex prompts can often be decomposed, just like complex methods.
+✓
+Output requirements should be made explicit, not assumed.
+✓
+Prompt refactoring is directly analogous to code refactoring.
+✓
+Good prompts are designed, inspected, and refined , not merely written.
+Prompt Smells , Key Takeaways
+REFERENCES
+Sources
+2024
+Ronanki, K., Cabrero-Daniel, B., & Berger, C. (2024). Prompt Smells: An Omen for Undesirable 
+Generative AI Outputs.
+2026
+Della Porta et al. (2026). Toward Measuring Prompt Quality: A Preliminary Investigation on Prompt 
+Smells.
+Thank you
+Questions and discussion welcome.
+Prompt Smells
+Prompt Smells
