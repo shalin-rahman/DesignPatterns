@@ -1,0 +1,1 @@
+Composite treats files and folders uniformly.

@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="760" viewBox="0 0 1120 760" role="img" aria-labelledby="title description">
+  <title id="title">Searchable File System Composite UML Class Diagram</title>
+  <desc id="description">UML diagram showing File and Folder implementing IFileSystemItem, Folder containing zero or more IFileSystemItem children, and Main depending on the interface.</desc>
+  <defs>
+    <marker id="open-triangle" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 12 7 L 1 13 Z" class="hollow-arrow"/>
+    </marker>
+    <marker id="dependency-arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 10 6 L 1 11" class="dependency-arrowhead"/>
+    </marker>
+    <style>
+      :root { color-scheme: light dark; --text: #172b4d; --muted: #42526e; --surface: #ffffff; --line: #25364a; }
+      text { font-family: "Segoe UI", Arial, sans-serif; fill: var(--text); }
+      .title { font-size: 23px; font-weight: 700; }
+      .stereotype { font-size: 14px; font-style: italic; }
+      .class-name { font-size: 19px; font-weight: 700; }
+      .section { font-size: 15px; }
+      .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+      .divider { stroke: var(--line); stroke-width: 1.2; }
+      .relation { fill: none; stroke: var(--line); stroke-width: 1.6; }
+      .dashed { stroke-dasharray: 7 5; }
+      .multiplicity { font-size: 14px; font-weight: 600; }
+      .note { font-size: 14px; fill: var(--muted); }
+      .hollow-arrow { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+      .dependency-arrowhead { fill: none; stroke: var(--line); stroke-width: 1.5; }
+      .diamond { fill: var(--line); stroke: var(--line); stroke-width: 1.5; }
+      @media (prefers-color-scheme: dark) {
+        :root { --text: #e6edf7; --muted: #b5c1d2; --surface: #1e293b; --line: #c1ccda; }
+      }
+    </style>
+  </defs>
+
+  <text x="560" y="38" text-anchor="middle" class="title">Composite Pattern — Searchable File System</text>
+
+  <!-- Common component interface -->
+  <g>
+    <rect x="370" y="72" width="380" height="212" rx="3" class="box"/>
+    <text x="560" y="98" text-anchor="middle" class="stereotype">«interface»</text>
+    <text x="560" y="124" text-anchor="middle" class="class-name">IFileSystemItem</text>
+    <line x1="370" y1="138" x2="750" y2="138" class="divider"/>
+    <text x="390" y="163" class="section">+ getName(): String</text>
+    <text x="390" y="187" class="section">+ getSize(): int</text>
+    <text x="390" y="211" class="section">+ display(): void</text>
+    <text x="390" y="235" class="section">+ display(indentationLevel: int): void</text>
+    <text x="390" y="259" class="section">+ search(keyword: String): List&lt;File&gt;</text>
+  </g>
+
+  <!-- Leaf -->
+  <g>
+    <rect x="70" y="385" width="360" height="252" rx="3" class="box"/>
+    <text x="250" y="417" text-anchor="middle" class="class-name">File</text>
+    <line x1="70" y1="431" x2="430" y2="431" class="divider"/>
+    <text x="90" y="458" class="section">- name: String</text>
+    <text x="90" y="482" class="section">- size: int</text>
+    <text x="90" y="506" class="section">- content: String</text>
+    <line x1="70" y1="522" x2="430" y2="522" class="divider"/>
+    <text x="90" y="549" class="section">+ File(name, size, content)</text>
+    <text x="90" y="573" class="section">+ getName(): String</text>
+    <text x="90" y="597" class="section">+ getSize(): int</text>
+    <text x="90" y="621" class="section">+ display(level): void</text>
+    <text x="90" y="645" class="section">+ search(keyword): List&lt;File&gt;</text>
+  </g>
+
+  <!-- Composite -->
+  <g>
+    <rect x="690" y="385" width="360" height="300" rx="3" class="box"/>
+    <text x="870" y="417" text-anchor="middle" class="class-name">Folder</text>
+    <line x1="690" y1="431" x2="1050" y2="431" class="divider"/>
+    <text x="710" y="458" class="section">- name: String</text>
+    <text x="710" y="482" class="section">- children: List&lt;IFileSystemItem&gt;</text>
+    <line x1="690" y1="498" x2="1050" y2="498" class="divider"/>
+    <text x="710" y="525" class="section">+ Folder(name)</text>
+    <text x="710" y="549" class="section">+ getName(): String</text>
+    <text x="710" y="573" class="section">+ getSize(): int</text>
+    <text x="710" y="597" class="section">+ add(item: IFileSystemItem): void</text>
+    <text x="710" y="621" class="section">+ remove(item: IFileSystemItem): boolean</text>
+    <text x="710" y="645" class="section">+ display(level): void</text>
+    <text x="710" y="669" class="section">+ search(keyword): List&lt;File&gt;</text>
+  </g>
+
+  <!-- Implementations: dashed line with hollow triangle points to interface. -->
+  <path d="M 250 385 L 250 330 L 485 330 L 485 284" class="relation dashed" marker-end="url(#open-triangle)"/>
+  <path d="M 690 405 L 650 405 L 650 360 L 650 284" class="relation dashed" marker-end="url(#open-triangle)"/>
+
+  <!-- Folder composition and child multiplicities. -->
+  <path d="M 750 245 L 780 300 L 1080 300 L 1080 350 L 870 350 L 870 377" class="relation"/>
+  <path d="M 870 377 L 878 385 L 870 393 L 862 385 Z" class="diamond"/>
+  <text x="755" y="232" class="multiplicity">0..*</text>
+  <text x="883" y="405" class="multiplicity">1</text>
+  <text x="985" y="340" text-anchor="middle" class="note">children</text>
+
+  <!-- Client depends on the common component, not concrete classes. -->
+  <g>
+    <rect x="460" y="585" width="150" height="80" rx="3" class="box"/>
+    <text x="535" y="617" text-anchor="middle" class="class-name">Main</text>
+    <line x1="460" y1="629" x2="610" y2="629" class="divider"/>
+    <text x="475" y="652" class="section">+ main(args)</text>
+  </g>
+  <path d="M 535 585 L 535 305 L 560 305 L 560 284" class="relation dashed" marker-end="url(#dependency-arrow)"/>
+</svg>
