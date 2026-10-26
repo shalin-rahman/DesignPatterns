@@ -60,6 +60,56 @@ The SVG automatically switches its text, boxes, and relationship lines between
 light and dark palettes according to the system or browser color-scheme
 preference.
 
+### Mermaid version
+
+This is an alternative text-based version of the class diagram. A Markdown
+viewer with Mermaid support will render it as a diagram.
+
+```mermaid
+classDiagram
+    class IFileSystemItem {
+        <<interface>>
+        +getName() String
+        +getSize() int
+        +display() void
+        +display(indentationLevel) void
+        +search(keyword) List~File~
+    }
+
+    class File {
+        -name String
+        -size int
+        -content String
+        +File(name, size, content)
+        +getName() String
+        +getSize() int
+        +display(indentationLevel) void
+        +search(keyword) List~File~
+    }
+
+    class Folder {
+        -name String
+        -children List~IFileSystemItem~
+        +Folder(name)
+        +getName() String
+        +getSize() int
+        +add(item) void
+        +remove(item) boolean
+        +display(indentationLevel) void
+        +search(keyword) List~File~
+    }
+
+    class Main {
+        +main(args) void
+        -runSearch(location, item, keyword) void
+    }
+
+    File ..|> IFileSystemItem
+    Folder ..|> IFileSystemItem
+    Folder "1" *-- "0..*" IFileSystemItem : children
+    Main ..> IFileSystemItem : uses
+```
+
 The editable PlantUML source for this diagram is included below:
 
 ```plantuml
