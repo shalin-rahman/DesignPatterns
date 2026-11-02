@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -38,7 +39,10 @@ public class File implements IFileSystemItem {
         String normalizedKeyword = Objects.requireNonNull(keyword, "keyword")
                 .toLowerCase(Locale.ROOT);
         if (content.toLowerCase(Locale.ROOT).contains(normalizedKeyword)) {
-            return Collections.singletonList(this);
+            // Return a mutable result list instead of a fixed-size singleton list.
+            List<File> matches = new ArrayList<>();
+            matches.add(this);
+            return matches;
         }
         return Collections.emptyList();
     }

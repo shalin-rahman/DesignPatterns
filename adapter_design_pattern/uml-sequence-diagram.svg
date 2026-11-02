@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="620" viewBox="0 0 960 620" role="img" aria-labelledby="title description">
+  <title id="title">UML Sequence Diagram - Checkout Refund via QuickPayAdapter</title>
+  <desc id="description">Sequence diagram illustrating Checkout invoking refund on QuickPayAdapter, which looks up the transaction ID and delegates returnMoney to QuickPaySDK.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 9 5 L 1 9 Z" class="solid-arrow"/>
+    </marker>
+    <marker id="open-arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 9 5 L 1 9" class="open-arrow-head"/>
+    </marker>
+    <style>
+      :root { color-scheme: light dark; --text: #172b4d; --muted: #5e6c84; --surface: #ffffff; --line: #25364a; --accent: #0052cc; --activation: #e8f0fe; }
+      text { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif; fill: var(--text); }
+      .title { font-size: 20px; font-weight: 700; }
+      .participant-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+      .participant-text { font-size: 15px; font-weight: 600; text-anchor: middle; }
+      .lifeline { stroke: var(--line); stroke-width: 1.2; stroke-dasharray: 6 5; }
+      .activation { fill: var(--activation); stroke: var(--line); stroke-width: 1.2; }
+      .msg-line { stroke: var(--line); stroke-width: 1.5; }
+      .return-line { stroke: var(--line); stroke-width: 1.5; stroke-dasharray: 6 4; }
+      .msg-text { font-size: 13px; font-weight: 500; }
+      .return-text { font-size: 13px; font-style: italic; fill: var(--muted); }
+      .solid-arrow { fill: var(--line); stroke: var(--line); }
+      .open-arrow-head { fill: none; stroke: var(--line); stroke-width: 1.5; }
+      .note-box { fill: #fef3c7; stroke: #f59e0b; stroke-width: 1.2; }
+      .note-text { font-size: 12px; fill: #78350f; }
+      @media (prefers-color-scheme: dark) {
+        :root { --text: #e6edf7; --muted: #9aaec7; --surface: #1e293b; --line: #8fa0b5; --accent: #579dff; --activation: #283548; }
+        .note-box { fill: #2c2411; stroke: #b45309; }
+        .note-text { fill: #fde68a; }
+      }
+    </style>
+  </defs>
+
+  <text x="480" y="38" text-anchor="middle" class="title">Sequence Diagram: Checkout.refund("Bob", 100.00)</text>
+
+  <!-- Lifeline Headers -->
+  <!-- 1. Checkout -->
+  <rect x="80" y="65" width="180" height="42" rx="4" class="participant-box"/>
+  <text x="170" y="91" class="participant-text">:Checkout</text>
+  <line x1="170" y1="107" x2="170" y2="560" class="lifeline"/>
+
+  <!-- 2. QuickPayAdapter -->
+  <rect x="370" y="65" width="220" height="42" rx="4" class="participant-box"/>
+  <text x="480" y="91" class="participant-text">:QuickPayAdapter</text>
+  <line x1="480" y1="107" x2="480" y2="560" class="lifeline"/>
+
+  <!-- 3. QuickPaySDK -->
+  <rect x="710" y="65" width="180" height="42" rx="4" class="participant-box"/>
+  <text x="800" y="91" class="participant-text">:QuickPaySDK</text>
+  <line x1="800" y1="107" x2="800" y2="560" class="lifeline"/>
+
+  <!-- Activation bars -->
+  <rect x="162" y="140" width="16" height="380" class="activation"/>
+  <rect x="472" y="155" width="16" height="315" class="activation"/>
+  <rect x="792" y="305" width="16" height="110" class="activation"/>
+
+  <!-- Step 1: Checkout calls refund -->
+  <line x1="178" y1="155" x2="470" y2="155" class="msg-line" marker-end="url(#arrow)"/>
+  <text x="195" y="147" class="msg-text">1: refund("Bob", 100.00)</text>
+
+  <!-- Note on Adapter storing state -->
+  <rect x="498" y="180" width="230" height="58" rx="3" class="note-box"/>
+  <text x="506" y="200" class="note-text">QuickPayAdapter stored the transaction</text>
+  <text x="506" y="216" class="note-text">ID "QP-1001" during the earlier</text>
+  <text x="506" y="230" class="note-text">pay("Bob", 100.00) operation.</text>
+
+  <!-- Step 2: Adapter looks up transaction ID internally -->
+  <path d="M 488 245 L 530 245 L 530 275 L 489 275" class="msg-line" marker-end="url(#arrow)"/>
+  <text x="538" y="265" class="msg-text">2: customerTransactions.get("Bob")</text>
+
+  <!-- Internal return -->
+  <text x="538" y="285" class="return-text">returns "QP-1001"</text>
+
+  <!-- Step 3: Adapter delegates to QuickPaySDK -->
+  <line x1="488" y1="315" x2="790" y2="315" class="msg-line" marker-end="url(#arrow)"/>
+  <text x="540" y="307" class="msg-text">3: returnMoney("QP-1001")</text>
+
+  <!-- Step 4: QuickPaySDK executes refund and returns result -->
+  <line x1="792" y1="400" x2="490" y2="400" class="return-line" marker-end="url(#open-arrow)"/>
+  <text x="615" y="392" class="return-text">4: return true</text>
+
+  <!-- Step 5: QuickPayAdapter returns to Checkout -->
+  <line x1="472" y1="455" x2="180" y2="455" class="return-line" marker-end="url(#open-arrow)"/>
+  <text x="295" y="447" class="return-text">5: return true</text>
+
+  <!-- Step 6: Checkout formats and prints receipt -->
+  <path d="M 178 480 L 220 480 L 220 510 L 179 510" class="msg-line" marker-end="url(#arrow)"/>
+  <text x="228" y="500" class="msg-text">6: printReceipt("QuickPay", "refund", "Bob", 100.00, true)</text>
+
+  <!-- Output note -->
+  <text x="480" y="590" text-anchor="middle" class="return-text">Console output: QuickPay | refund | Bob | $100.00 -&gt; SUCCESS</text>
+</svg>
+

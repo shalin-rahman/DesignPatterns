@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="860" viewBox="0 0 1240 860" role="img" aria-labelledby="title description">
+  <title id="title">Online Store Payment System - Adapter Pattern Class Diagram</title>
+  <desc id="description">UML Class Diagram showing Checkout, PaymentProcessor interface, three Adapters, and three Adaptee classes.</desc>
+  <defs>
+    <marker id="hollow-triangle" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 Z" class="hollow-arrow"/>
+    </marker>
+    <marker id="association-arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 9 5 L 1 9" class="nav-arrow"/>
+    </marker>
+    <style>
+      :root { color-scheme: light dark; --text: #172b4d; --muted: #5e6c84; --surface: #ffffff; --line: #25364a; --accent: #0052cc; }
+      text { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif; fill: var(--text); }
+      .title { font-size: 22px; font-weight: 700; }
+      .stereotype { font-size: 13px; font-style: italic; fill: var(--muted); }
+      .class-name { font-size: 16px; font-weight: 700; }
+      .section { font-size: 13px; }
+      .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+      .divider { stroke: var(--line); stroke-width: 1.2; }
+      .relation { fill: none; stroke: var(--line); stroke-width: 1.6; }
+      .dashed { stroke-dasharray: 6 4; }
+      .hollow-arrow { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+      .nav-arrow { fill: none; stroke: var(--line); stroke-width: 1.5; }
+      .label { font-size: 12px; fill: var(--muted); }
+      @media (prefers-color-scheme: dark) {
+        :root { --text: #e6edf7; --muted: #9aaec7; --surface: #1e293b; --line: #8fa0b5; --accent: #579dff; }
+      }
+    </style>
+  </defs>
+
+  <text x="620" y="38" text-anchor="middle" class="title">Adapter Pattern — Online Store Payment System</text>
+
+  <!-- Client: Checkout -->
+  <g id="class-checkout">
+    <rect x="40" y="70" width="300" height="130" rx="4" class="box"/>
+    <text x="190" y="93" text-anchor="middle" class="class-name">Checkout</text>
+    <line x1="40" y1="103" x2="340" y2="103" class="divider"/>
+    <text x="50" y="125" class="section">+ pay(proc: PaymentProcessor, ...): boolean</text>
+    <text x="50" y="147" class="section">+ refund(proc: PaymentProcessor, ...): boolean</text>
+    <text x="50" y="169" class="section">- printReceipt(...): void</text>
+  </g>
+
+  <!-- Target: PaymentProcessor -->
+  <g id="interface-paymentprocessor">
+    <rect x="440" y="70" width="370" height="130" rx="4" class="box"/>
+    <text x="625" y="92" text-anchor="middle" class="stereotype">&lt;&lt;interface&gt;&gt;</text>
+    <text x="625" y="112" text-anchor="middle" class="class-name">PaymentProcessor</text>
+    <line x1="440" y1="122" x2="810" y2="122" class="divider"/>
+    <text x="455" y="144" class="section">+ getName(): String</text>
+    <text x="455" y="165" class="section">+ pay(customer: String, amount: double): boolean</text>
+    <text x="455" y="186" class="section">+ refund(customer: String, amount: double): boolean</text>
+  </g>
+
+  <!-- Client to Target dependency -->
+  <line x1="340" y1="135" x2="438" y2="135" class="relation dashed" marker-end="url(#association-arrow)"/>
+  <text x="389" y="125" text-anchor="middle" class="label">&lt;&lt;uses&gt;&gt;</text>
+
+  <!-- Row 2: Adapters -->
+  <!-- Adapter 1: LegacyBankAdapter -->
+  <g id="class-legacybankadapter">
+    <rect x="40" y="300" width="350" height="145" rx="4" class="box"/>
+    <text x="215" y="325" text-anchor="middle" class="class-name">LegacyBankAdapter</text>
+    <line x1="40" y1="335" x2="390" y2="335" class="divider"/>
+    <text x="52" y="354" class="section">- gateway: LegacyBankGateway</text>
+    <line x1="40" y1="363" x2="390" y2="363" class="divider"/>
+    <text x="52" y="382" class="section">+ LegacyBankAdapter(gateway: LegacyBankGateway)</text>
+    <text x="52" y="402" class="section">+ getName(): String</text>
+    <text x="52" y="422" class="section">+ pay(customer, amount): boolean</text>
+    <text x="52" y="442" class="section">+ refund(customer, amount): boolean</text>
+  </g>
+
+  <!-- Adapter 2: QuickPayAdapter -->
+  <g id="class-quickpayadapter">
+    <rect x="440" y="300" width="370" height="165" rx="4" class="box"/>
+    <text x="625" y="325" text-anchor="middle" class="class-name">QuickPayAdapter</text>
+    <line x1="440" y1="335" x2="810" y2="335" class="divider"/>
+    <text x="452" y="354" class="section">- quickPaySDK: QuickPaySDK</text>
+    <text x="452" y="374" class="section">- customerTransactions: Map&lt;String, String&gt;</text>
+    <line x1="440" y1="383" x2="810" y2="383" class="divider"/>
+    <text x="452" y="402" class="section">+ QuickPayAdapter(quickPaySDK: QuickPaySDK)</text>
+    <text x="452" y="422" class="section">+ getName(): String</text>
+    <text x="452" y="442" class="section">+ pay(customer, amount): boolean</text>
+    <text x="452" y="462" class="section">+ refund(customer, amount): boolean</text>
+  </g>
+
+  <!-- Adapter 3: EuroPayAdapter -->
+  <g id="class-europayadapter">
+    <rect x="860" y="300" width="350" height="175" rx="4" class="box"/>
+    <text x="1035" y="325" text-anchor="middle" class="class-name">EuroPayAdapter</text>
+    <line x1="860" y1="335" x2="1210" y2="335" class="divider"/>
+    <text x="872" y="354" class="section">- euroPayService: EuroPayService</text>
+    <text x="872" y="374" class="section">- USD_TO_EUR_RATE: double = 0.90</text>
+    <line x1="860" y1="383" x2="1210" y2="383" class="divider"/>
+    <text x="872" y="402" class="section">+ EuroPayAdapter(euroPayService: EuroPayService)</text>
+    <text x="872" y="422" class="section">+ getName(): String</text>
+    <text x="872" y="442" class="section">+ pay(customer, amount): boolean</text>
+    <text x="872" y="462" class="section">+ refund(customer, amount): boolean</text>
+  </g>
+
+  <!-- Realization lines from Adapters to PaymentProcessor -->
+  <!-- Middle adapter (QuickPayAdapter) straight up -->
+  <line x1="625" y1="300" x2="625" y2="202" class="relation dashed" marker-end="url(#hollow-triangle)"/>
+  <!-- Left adapter (LegacyBankAdapter) elbow up -->
+  <path d="M 215 300 L 215 250 L 590 250 L 590 202" class="relation dashed" marker-end="url(#hollow-triangle)"/>
+  <!-- Right adapter (EuroPayAdapter) elbow up -->
+  <path d="M 1035 300 L 1035 250 L 660 250 L 660 202" class="relation dashed" marker-end="url(#hollow-triangle)"/>
+
+  <!-- Row 3: Adaptees (3rd-party services) -->
+  <!-- Adaptee 1: LegacyBankGateway -->
+  <g id="class-legacybankgateway">
+    <rect x="40" y="600" width="350" height="120" rx="4" class="box"/>
+    <text x="215" y="625" text-anchor="middle" class="class-name">LegacyBankGateway</text>
+    <line x1="40" y1="635" x2="390" y2="635" class="divider"/>
+    <text x="52" y="660" class="section">+ makeTransfer(holder: String, cents: long): int</text>
+    <text x="52" y="685" class="section">+ reverseTransfer(holder: String, cents: long): int</text>
+  </g>
+
+  <!-- Adaptee 2: QuickPaySDK -->
+  <g id="class-quickpaysdk">
+    <rect x="440" y="600" width="370" height="135" rx="4" class="box"/>
+    <text x="625" y="625" text-anchor="middle" class="class-name">QuickPaySDK</text>
+    <line x1="440" y1="635" x2="810" y2="635" class="divider"/>
+    <text x="452" y="654" class="section">- transactionCounter: int</text>
+    <line x1="440" y1="663" x2="810" y2="663" class="divider"/>
+    <text x="452" y="684" class="section">+ sendMoney(curr, amt, name): String</text>
+    <text x="452" y="706" class="section">+ returnMoney(txId: String): boolean</text>
+  </g>
+
+  <!-- Adaptee 3: EuroPayService -->
+  <g id="class-europayservice">
+    <rect x="860" y="600" width="350" height="120" rx="4" class="box"/>
+    <text x="1035" y="625" text-anchor="middle" class="class-name">EuroPayService</text>
+    <line x1="860" y1="635" x2="1210" y2="635" class="divider"/>
+    <text x="872" y="660" class="section">+ chargeCard(email: String, euros: double): boolean</text>
+    <text x="872" y="685" class="section">+ refundCard(email: String, euros: double): boolean</text>
+  </g>
+
+  <!-- Association / Composition lines from Adapters to Adaptees -->
+  <!-- Left adapter to Left adaptee -->
+  <line x1="215" y1="445" x2="215" y2="598" class="relation" marker-end="url(#association-arrow)"/>
+  <text x="225" y="520" class="label">adapts / wraps</text>
+
+  <!-- Middle adapter to Middle adaptee -->
+  <line x1="625" y1="465" x2="625" y2="598" class="relation" marker-end="url(#association-arrow)"/>
+  <text x="635" y="535" class="label">adapts / wraps</text>
+
+  <!-- Right adapter to Right adaptee -->
+  <line x1="1035" y1="475" x2="1035" y2="598" class="relation" marker-end="url(#association-arrow)"/>
+  <text x="1045" y="535" class="label">adapts / wraps</text>
+
+  <!-- Footer note -->
+  <text x="620" y="810" text-anchor="middle" class="label">Object Adapter Pattern: Client couples only to PaymentProcessor abstraction, while Adapters convert calls to Adaptees via composition.</text>
+</svg>
+
