@@ -1,13 +1,18 @@
 import java.io.*;
 
 /**
- * FileDataSource - the real file, the innermost layer.
+ * FileDataSource - the Concrete Component (innermost Wrappee / Decorated Core).
  *
- * This is the actual thing being wrapped. It just reads and writes
- * raw bytes to disk. No encryption, no compression — nothing extra.
+ * Pattern Terminology:
+ *   - WRAPPEE / DECORATED COMPONENT: FileDataSource is the foundational target at the core of the chain.
+ *              It is the object that gets wrapped and decorated. Unlike wrappers/decorators, it is purely
+ *              a wrappee and never wraps or decorates anything else (holds no inner DataSource reference).
+ *   - WRAP / DECORATE: While wrappers decorate this component with added features (encryption, compression),
+ *              FileDataSource itself performs raw, undecorated disk operations.
  *
- * Every decorator chain ends here. By the time data reaches this class,
- * the decorators above have already done their transformations.
+ * This class performs the actual I/O: reading and writing raw bytes directly to disk.
+ * Every decorator/wrapper chain eventually delegates here once all wrapper transformations
+ * (e.g. encryption, compression) are complete.
  */
 public class FileDataSource implements DataSource {
 

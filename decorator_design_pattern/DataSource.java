@@ -1,8 +1,14 @@
 /**
- * DataSource - the common interface every layer must follow.
+ * DataSource - the common Component interface every layer must follow.
  *
- * Both the real file and all decorators implement this.
- * The client only talks to this — it never knows what's underneath.
+ * Both the Wrapper (Decorator) and the Wrappee (Decorated Component / Target)
+ * implement this interface. Because both share the same contract:
+ *   - The client treats any Wrapper (Decorator) or Wrappee (Decorated Object) identically.
+ *   - A Wrapper (Decorator) can wrap/decorate another Wrapper/Decorator just as easily as a raw file.
+ *
+ * Roles:
+ *   - Component Interface: Defines writeData() and readData().
+ *   - Unifies Wrappers (Decorators) and Wrappees (Decorated Components / inner Decorators).
  */
 public interface DataSource {
 

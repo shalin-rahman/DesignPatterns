@@ -3,51 +3,54 @@ import java.util.Base64;
 import java.util.zip.*;
 
 /**
- * CompressionDecorator - adds GZIP compression on top of any DataSource.
+ * CompressionDecorator - Concrete Decorator (Concrete Wrapper) for GZIP compression.
  *
- * Write: compresses the data, Base64-encodes the result, passes it down.
- * Read:  gets data from below, Base64-decodes it, then decompresses.
+ * Pattern Terminology:
+ *   - WRAPPER / DECORATOR: CompressionDecorator wraps and decorates any DataSource (the wrappee)
+ *              to provide transparent data compression and decompression.
+ *   - WRAPPEE / DECORATED COMPONENT: The DataSource instance provided via constructor (source), which can
+ *              be a raw FileDataSource or another wrapper/decorator (e.g. EncryptionDecorator).
+ *   - WRAP / DECORATE: Dynamically decorates/wraps the data stream by compressing on write
+ *              and decompressing on read.
  *
- * Why Base64 after GZIP?
- * GZIP produces raw binary bytes that cannot be safely stored in a Java String.
- * Base64 converts those bytes into printable characters so the compressed
- * result can travel through the chain and into the file cleanly.
- *
- * Order matters when stacking decorators.
- * If the chain is: CompressionDecorator -> EncryptionDecorator -> FileDataSource
- *   write: compress first, then encrypt, then write to file
- *   read:  read from file, decrypt, then decompress
- * Each decorator undoes its own step in reverse on the way back out.
+ * Interception Flow:
+ *   - writeData (Wrapper/Decorator -> Wrappee/Decorated Component):
+ *       1. Wrapper/Decorator compresses the string into GZIP bytes and Base64 encodes them.
+ *       2. Wrapper/Decorator passes the compressed data inward to the wrappee (super.writeData).
+ *   - readData (Wrappee/Decorated Component -> Wrapper/Decorator):
+ *       1. Wrapper/Decorator fetches data from the wrappee (super.readData).
+ *       2. Wrapper/Decorator decodes Base64 and decompresses GZIP bytes back to original text.
  */
 public class CompressionDecorator extends DataSourceDecorator {
 
+    /**
+     * Initializes the compression wrapper/decorator around the target wrappee/component.
+     *
+     * @param source The wrappee being decorated and wrapped (FileDataSource or another wrapper/decorator)
+     */
     public CompressionDecorator(DataSource source) {
-        super(source);
+        super(source); // stores wrappee in base class
     }
 
     @Override
     public void writeData(String data) {
-        // Step 1: GZIP compress
+        // Step 1: Wrapper / Decorator performs compression & Base64 encoding
         byte[] compressed = compress(data);
-
-        // Step 2: Base64-encode so the compressed bytes are safe to pass as a String
         String encoded = Base64.getEncoder().encodeToString(compressed);
         System.out.printf("  [CompressionDecorator] Compressed %d chars -> %d chars%n",
                 data.length(), encoded.length());
 
-        // Step 3: Hand the compressed+encoded string to the next layer
+        // Step 2: Wrapper / Decorator forwards compressed data to the wrappee / decorated component
         super.writeData(encoded);
     }
 
     @Override
     public String readData() {
-        // Step 1: Get the compressed+encoded data from the layer below
+        // Step 1: Wrapper / Decorator retrieves compressed data from its wrappee / decorated component
         String encoded = super.readData();
 
-        // Step 2: Base64-decode back to raw GZIP bytes
+        // Step 2: Wrapper / Decorator decodes Base64 and decompresses the GZIP payload
         byte[] compressed = Base64.getDecoder().decode(encoded);
-
-        // Step 3: GZIP decompress to restore the original string
         String original = decompress(compressed);
         System.out.printf("  [CompressionDecorator] Decompressed %d chars -> %d chars%n",
                 encoded.length(), original.length());
