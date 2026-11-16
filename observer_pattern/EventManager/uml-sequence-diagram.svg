@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="740" viewBox="0 0 1180 740" role="img" aria-labelledby="seq-title seq-desc">
+  <title id="seq-title">EventManager - Observer Pattern Sequence Diagram</title>
+  <desc id="seq-desc">UML Sequence Diagram showing subscription setup, openFile event notification dispatching, and saveFile event notification dispatching.</desc>
+  <defs>
+    <marker id="seq-arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 9 5 L 1 9" fill="none" stroke="#25364a" stroke-width="1.5"/>
+    </marker>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --text: #172b4d;
+        --muted: #5e6c84;
+        --surface: #ffffff;
+        --line: #25364a;
+        --accent: #0052cc;
+        --lifeline: #c1c7d0;
+      }
+      text { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif; fill: var(--text); }
+      .seq-title { font-size: 20px; font-weight: 700; }
+      .seq-subtitle { font-size: 13px; fill: var(--muted); }
+      .header-box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+      .header-text { font-size: 13.5px; font-weight: 700; text-anchor: middle; }
+      .lifeline { stroke: var(--lifeline); stroke-width: 1.5; stroke-dasharray: 6 4; }
+      .msg-line { stroke: var(--line); stroke-width: 1.5; }
+      .msg-text { font-size: 12.5px; }
+      .activation { fill: #e3f2fd; stroke: #1976d2; stroke-width: 1.2; }
+      .activation-event { fill: #f3e5f5; stroke: #7b1fa2; stroke-width: 1.2; }
+      .activation-listener { fill: #e8f5e9; stroke: #388e3c; stroke-width: 1.2; }
+      .step-badge { font-weight: 700; fill: #0052cc; }
+      .note-box { fill: #fffde7; stroke: #fbc02d; stroke-width: 1; }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --text: #e6edf7;
+          --muted: #9aaec7;
+          --surface: #1e293b;
+          --line: #8fa0b5;
+          --accent: #579dff;
+          --lifeline: #475569;
+        }
+        .header-box { fill: #1e293b; stroke: #8fa0b5; }
+        .activation { fill: #0d47a1; stroke: #42a5f5; }
+        .activation-event { fill: #4a148c; stroke: #ba68c8; }
+        .activation-listener { fill: #1b5e20; stroke: #81c784; }
+        .note-box { fill: #2d2b1f; stroke: #eab308; }
+      }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="40" y="40" class="seq-title">Observer Pattern: Event Notification Sequence</text>
+  <text x="40" y="65" class="seq-subtitle">Trace of Client (Main) interacting with Editor, EventManager, and Observers</text>
+
+  <!-- Lifeline Headers -->
+  <!-- 1. Client / Main -->
+  <rect x="60" y="90" width="130" height="40" rx="4" class="header-box"/>
+  <text x="125" y="115" class="header-text">:Main</text>
+  <line x1="125" y1="130" x2="125" y2="700" class="lifeline"/>
+
+  <!-- 2. Editor -->
+  <rect x="270" y="90" width="130" height="40" rx="4" class="header-box"/>
+  <text x="335" y="115" class="header-text">:Editor</text>
+  <line x1="335" y1="130" x2="335" y2="700" class="lifeline"/>
+
+  <!-- 3. EventManager -->
+  <rect x="480" y="90" width="150" height="40" rx="4" class="header-box"/>
+  <text x="555" y="115" class="header-text">:EventManager</text>
+  <line x1="555" y1="130" x2="555" y2="700" class="lifeline"/>
+
+  <!-- 4. LogOpenListener -->
+  <rect x="710" y="90" width="170" height="40" rx="4" class="header-box"/>
+  <text x="795" y="115" class="header-text">:LogOpenListener</text>
+  <line x1="795" y1="130" x2="795" y2="700" class="lifeline"/>
+
+  <!-- 5. EmailNotificationListener -->
+  <rect x="940" y="90" width="190" height="40" rx="4" class="header-box"/>
+  <text x="1035" y="115" class="header-text">:EmailNotificationListener</text>
+  <line x1="1035" y1="130" x2="1035" y2="700" class="lifeline"/>
+
+  <!-- ==================== Step 1: Subscription ==================== -->
+  <text x="135" y="160" class="msg-text step-badge">1. Setup: Subscribe listeners</text>
+  <line x1="125" y1="175" x2="545" y2="175" class="msg-line" marker-end="url(#seq-arrow)"/>
+  <text x="180" y="170" class="msg-text">subscribe("open", logListener)</text>
+
+  <line x1="125" y1="205" x2="545" y2="205" class="msg-line" marker-end="url(#seq-arrow)"/>
+  <text x="180" y="200" class="msg-text">subscribe("save", emailListener)</text>
+
+  <!-- ==================== Step 2: Open File ==================== -->
+  <text x="135" y="245" class="msg-text step-badge">2. Open File Operation</text>
+  <line x1="125" y1="260" x2="325" y2="260" class="msg-line" marker-end="url(#seq-arrow)"/>
+  <text x="145" y="255" class="msg-text">openFile("document.pdf")</text>
+
+  <rect x="330" y="260" width="10" height="150" class="activation"/>
+  
+  <line x1="340" y1="285" x2="545" y2="285" class="msg-line" marker-end="url(#seq-arrow)"/>
+  <text x="370" y="280" class="msg-text">notify("open", file)</text>
+
+  <rect x="550" y="285" width="10" height="110" class="activation-event"/>
+
+  <line x1="560" y1="315" x2="785" y2="315" class="msg-line" marker-end="url(#seq-arrow)"/>
+  <text x="590" y="310" class="msg-text">update("open", file)</text>
+
+  <rect x="790" y="315" width="10" height="40" class="activation-listener"/>
+  <text x="815" y="335" class="seq-subtitle">Logs: "Save to log..."</text>
+
+  <!-- ==================== Step 3: Save File ==================== -->
+  <text x="135" y="445" class="msg-text step-badge">3. Save File Operation</text>
+  <line x1="125" y1="460" x2="325" y2="460" class="msg-line" marker-end="url(#seq-arrow)"/>
+  <text x="145" y="455" class="msg-text">saveFile()</text>
+
+  <rect x="330" y="460" width="10" height="150" class="activation"/>
+
+  <line x1="340" y1="485" x2="545" y2="485" class="msg-line" marker-end="url(#seq-arrow)"/>
+  <text x="370" y="480" class="msg-text">notify("save", file)</text>
+
+  <rect x="550" y="485" width="10" height="110" class="activation-event"/>
+
+  <line x1="560" y1="520" x2="1025" y2="520" class="msg-line" marker-end="url(#seq-arrow)"/>
+  <text x="680" y="515" class="msg-text">update("save", file)</text>
+
+  <rect x="1030" y="520" width="10" height="45" class="activation-listener"/>
+  <text x="1050" y="545" class="seq-subtitle">Prints: "Email to admin..."</text>
+
+  <!-- ==================== Step 4: Dynamic Unsubscribe ==================== -->
+  <text x="135" y="640" class="msg-text step-badge">4. Dynamic Unsubscribe</text>
+  <line x1="125" y1="655" x2="545" y2="655" class="msg-line" marker-end="url(#seq-arrow)"/>
+  <text x="180" y="650" class="msg-text">unsubscribe("save", emailListener)</text>
+</svg>

@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1150" height="720" viewBox="0 0 1150 720" role="img" aria-labelledby="title description">
+  <title id="title">YouTubeManager - Proxy Design Pattern Class Diagram</title>
+  <desc id="description">UML Class Diagram showing YouTubeManager, ThirdPartyYouTubeLib interface, YouTubeCacheProxy, ThirdPartyYouTubeClass, and Video entity.</desc>
+  <defs>
+    <!-- Hollow triangle for realization / interface implementation -->
+    <marker id="hollow-triangle" markerWidth="14" markerHeight="14" refX="13" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 13 7 L 1 13 Z" class="hollow-arrow"/>
+    </marker>
+    <!-- Open arrow for association -->
+    <marker id="association-arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 1 L 9 5 L 1 9" class="nav-arrow"/>
+    </marker>
+    <!-- Diamond for composition/aggregation -->
+    <marker id="diamond" markerWidth="14" markerHeight="14" refX="1" refY="7" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M 1 7 L 7 2 L 13 7 L 7 12 Z" class="diamond-shape"/>
+    </marker>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --text: #172b4d;
+        --muted: #5e6c84;
+        --surface: #ffffff;
+        --line: #25364a;
+        --accent: #0052cc;
+        --highlight: #0b69a3;
+      }
+      text { font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif; fill: var(--text); }
+      .title { font-size: 20px; font-weight: 700; }
+      .stereotype { font-size: 13px; font-style: italic; fill: var(--muted); }
+      .class-name { font-size: 15px; font-weight: 700; }
+      .section { font-size: 12.5px; }
+      .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+      .divider { stroke: var(--line); stroke-width: 1.2; }
+      .relation { fill: none; stroke: var(--line); stroke-width: 1.6; }
+      .dashed { stroke-dasharray: 6 4; }
+      .hollow-arrow { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+      .nav-arrow { fill: none; stroke: var(--line); stroke-width: 1.5; }
+      .diamond-shape { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+      .badge-client { fill: #e3f2fd; stroke: #1976d2; }
+      .badge-subject { fill: #f3e5f5; stroke: #7b1fa2; }
+      .badge-proxy { fill: #e8f5e9; stroke: #388e3c; }
+      .badge-real { fill: #fff3e0; stroke: #f57c00; }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --text: #e6edf7;
+          --muted: #9aaec7;
+          --surface: #1e293b;
+          --line: #8fa0b5;
+          --accent: #579dff;
+          --highlight: #38bdf8;
+        }
+      }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="575" y="36" text-anchor="middle" class="title">Proxy Pattern — Refactoring Guru YouTubeManager Architecture</text>
+
+  <!-- 1. Client: YouTubeManager -->
+  <g id="class-manager">
+    <rect x="50" y="70" width="300" height="150" rx="6" class="box badge-client"/>
+    <text x="200" y="92" text-anchor="middle" class="stereotype">&lt;&lt;Client / Consumer&gt;&gt;</text>
+    <text x="200" y="112" text-anchor="middle" class="class-name">YouTubeManager</text>
+    <line x1="50" y1="122" x2="350" y2="122" class="divider"/>
+    <text x="62" y="140" class="section"># service: ThirdPartyYouTubeLib</text>
+    <line x1="50" y1="149" x2="350" y2="149" class="divider"/>
+    <text x="62" y="168" class="section">+ YouTubeManager(service)</text>
+    <text x="62" y="188" class="section">+ renderVideoPage(id: String): void</text>
+    <text x="62" y="208" class="section">+ renderPopularVideos(): void</text>
+  </g>
+
+  <!-- 2. Service Interface: ThirdPartyYouTubeLib -->
+  <g id="interface-service">
+    <rect x="460" y="70" width="330" height="150" rx="6" class="box badge-subject"/>
+    <text x="625" y="92" text-anchor="middle" class="stereotype">&lt;&lt;Service Interface / Subject&gt;&gt;</text>
+    <text x="625" y="112" text-anchor="middle" class="class-name">ThirdPartyYouTubeLib</text>
+    <line x1="460" y1="122" x2="790" y2="122" class="divider"/>
+    <text x="472" y="152" class="section">+ popularVideos(): HashMap&lt;String, Video&gt;</text>
+    <text x="472" y="178" class="section">+ getVideo(videoId: String): Video</text>
+  </g>
+
+  <!-- 3. Entity / Model: Video -->
+  <g id="class-video">
+    <rect x="880" y="70" width="220" height="150" rx="6" class="box"/>
+    <text x="990" y="92" text-anchor="middle" class="stereotype">&lt;&lt;Value Object&gt;&gt;</text>
+    <text x="990" y="112" text-anchor="middle" class="class-name">Video</text>
+    <line x1="880" y1="122" x2="1100" y2="122" class="divider"/>
+    <text x="892" y="140" class="section">+ id: String</text>
+    <text x="892" y="160" class="section">+ title: String</text>
+    <text x="892" y="180" class="section">+ data: String</text>
+    <line x1="880" y1="188" x2="1100" y2="188" class="divider"/>
+    <text x="892" y="206" class="section">+ toString(): String</text>
+  </g>
+
+  <!-- 4. Proxy: YouTubeCacheProxy -->
+  <g id="class-proxy">
+    <rect x="230" y="340" width="330" height="230" rx="6" class="box badge-proxy"/>
+    <text x="395" y="362" text-anchor="middle" class="stereotype">&lt;&lt;Proxy / Caching Wrapper&gt;&gt;</text>
+    <text x="395" y="382" text-anchor="middle" class="class-name">YouTubeCacheProxy</text>
+    <line x1="230" y1="392" x2="560" y2="392" class="divider"/>
+    <text x="242" y="410" class="section">- youtubeService: ThirdPartyYouTubeLib</text>
+    <text x="242" y="430" class="section">- cachePopular: HashMap&lt;String, Video&gt;</text>
+    <text x="242" y="450" class="section">- cacheAll: HashMap&lt;String, Video&gt;</text>
+    <line x1="230" y1="458" x2="560" y2="458" class="divider"/>
+    <text x="242" y="478" class="section">+ YouTubeCacheProxy()</text>
+    <text x="242" y="498" class="section">+ YouTubeCacheProxy(service)</text>
+    <text x="242" y="518" class="section">+ popularVideos(): HashMap&lt;String, Video&gt;</text>
+    <text x="242" y="538" class="section">+ getVideo(videoId: String): Video</text>
+    <text x="242" y="558" class="section">+ reset(): void</text>
+  </g>
+
+  <!-- 5. Real Subject: ThirdPartyYouTubeClass -->
+  <g id="class-realsubject">
+    <rect x="680" y="340" width="340" height="230" rx="6" class="box badge-real"/>
+    <text x="850" y="362" text-anchor="middle" class="stereotype">&lt;&lt;Real Subject / Remote Service&gt;&gt;</text>
+    <text x="850" y="382" text-anchor="middle" class="class-name">ThirdPartyYouTubeClass</text>
+    <line x1="680" y1="392" x2="1020" y2="392" class="divider"/>
+    <text x="692" y="420" class="section">+ popularVideos(): HashMap&lt;String, Video&gt;</text>
+    <text x="692" y="442" class="section">+ getVideo(videoId: String): Video</text>
+    <line x1="680" y1="452" x2="1020" y2="452" class="divider"/>
+    <text x="692" y="474" class="section">- experienceNetworkLatency(): int</text>
+    <text x="692" y="496" class="section">- connectToServer(server: String): void</text>
+    <text x="692" y="518" class="section">- getRandomVideos(): HashMap&lt;String, Video&gt;</text>
+    <text x="692" y="540" class="section">- getSomeVideo(videoId: String): Video</text>
+  </g>
+
+  <!-- Relationships -->
+
+  <!-- YouTubeManager --> ThirdPartyYouTubeLib (Association) -->
+  <path d="M 350 145 L 450 145" class="relation" marker-end="url(#association-arrow)"/>
+  <text x="400" y="137" text-anchor="middle" class="section">uses</text>
+
+  <!-- ThirdPartyYouTubeLib --> Video (Dependency) -->
+  <path d="M 790 145 L 870 145" class="relation dashed" marker-end="url(#association-arrow)"/>
+  <text x="830" y="137" text-anchor="middle" class="section">returns</text>
+
+  <!-- ThirdPartyYouTubeClass ..|> ThirdPartyYouTubeLib (Realization) -->
+  <path d="M 850 340 L 850 260 L 690 260 L 690 234" class="relation dashed" marker-end="url(#hollow-triangle)"/>
+  <text x="855" y="300" class="section">implements</text>
+
+  <!-- YouTubeCacheProxy ..|> ThirdPartyYouTubeLib (Realization) -->
+  <path d="M 395 340 L 395 260 L 560 260 L 560 234" class="relation dashed" marker-end="url(#hollow-triangle)"/>
+  <text x="315" y="300" class="section">implements</text>
+
+  <!-- YouTubeCacheProxy o--> ThirdPartyYouTubeLib / ThirdPartyYouTubeClass (Aggregation / Wraps) -->
+  <path d="M 560 445 L 670 445" class="relation" marker-start="url(#diamond)" marker-end="url(#association-arrow)"/>
+  <text x="615" y="435" text-anchor="middle" class="section">delegates to</text>
+
+  <!-- Footer note -->
+  <rect x="50" y="620" width="1050" height="60" rx="4" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+  <text x="70" y="645" font-size="12.5" fill="#475569">
+    <b>Key Proxy Pattern Principle:</b> The client (<tspan fill="#0052cc">YouTubeManager</tspan>) interacts only with the abstract interface (<tspan fill="#7b1fa2">ThirdPartyYouTubeLib</tspan>).
+  </text>
+  <text x="70" y="665" font-size="12.5" fill="#475569">
+    The proxy (<tspan fill="#2e7d32">YouTubeCacheProxy</tspan>) intercepts expensive requests, answers repeated queries from local memory, and forwards misses to <tspan fill="#d84315">ThirdPartyYouTubeClass</tspan>.
+  </text>
+</svg>
