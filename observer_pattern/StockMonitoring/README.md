@@ -42,7 +42,7 @@ To solve these two problems cleanly, we combine two classic design patterns:
 
 ---
 
-## 3. Assignment Tasks & Answers
+## 3. Tasks & Answers
 
 ### Task 1: Identify Pattern Elements
 
@@ -234,7 +234,7 @@ sequenceDiagram
 
 ---
 
-## 5. Code Walkthrough (Key Concepts with Short Comments)
+## 5. Code Walkthrough
 
 ```java
 // 1. PROXY: Controls access, caches results, and delays server connection
@@ -351,3 +351,64 @@ Returned price for ACME: 115.0
   ALL 6 STEPS COMPLETED SUCCESSFULLY ACCORDING TO SPECIFICATION
 ================================================================================
 ```
+
+---
+
+## 7. Optional: Direction-Specific Price Notifications
+
+To notify different observers about price rises and drops, keep `PriceTracker`
+publishing every price change through its single `List<StockObserver>`.
+Each person's observer stores the direction they care about and filters the
+update by comparing the old and new prices. The tracker does not need separate
+rise and drop lists.
+
+Add a direction preference to `PriceAlert`. Assign each person to only one
+recipient group:
+
+```java
+enum PriceDirection { RISE, DROP }
+
+// Add this field to PriceAlert and accept it in the constructor.
+private final PriceDirection direction;
+
+// Inside PriceAlert.update(...), detect crossing this person's target:
+boolean crossesUp = oldPrice < targetPrice && newPrice >= targetPrice;
+boolean crossesDown = oldPrice > targetPrice && newPrice <= targetPrice;
+boolean shouldNotify =
+        (direction == PriceDirection.RISE && crossesUp)
+        || (direction == PriceDirection.DROP && crossesDown);
+
+if (targetSymbol.equalsIgnoreCase(symbol) && shouldNotify) {
+    System.out.printf("Notify %s: %s changed from %.2f to %.2f%n",
+            personName, symbol, oldPrice, newPrice);
+}
+```
+
+Register all people in the same list, but assign different people to each
+direction:
+
+```java
+tracker.registerObserver(
+        new PriceAlert("Alice", "ACME", 110.00, PriceDirection.RISE));
+tracker.registerObserver(
+        new PriceAlert("Maya", "ACME", 110.00, PriceDirection.RISE));
+tracker.registerObserver(
+        new PriceAlert("Bob", "ACME", 45.00, PriceDirection.DROP));
+tracker.registerObserver(
+        new PriceAlert("Sam", "ACME", 45.00, PriceDirection.DROP));
+```
+
+Only the rise group is notified about rises, and only the drop group is
+notified about drops. The tracker still keeps one observer list and calls
+each observer for every price change; the direction filter controls who acts.
+
+For notifications on every rise or drop instead of only target crossings,
+replace the crossing checks with:
+
+```java
+// Rising or dropping
+newPrice > oldPrice
+newPrice < oldPrice
+```
+
+Combine the appropriate comparison with the person's direction preference.
