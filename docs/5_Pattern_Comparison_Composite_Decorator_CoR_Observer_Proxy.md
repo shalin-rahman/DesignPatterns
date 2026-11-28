@@ -565,7 +565,7 @@ START: I need objects to delegate work to other objects
 | **Chain of Responsibility** | [`chain-of-reponsibility/ComponentWithContextualHelp/`](../chain-of-reponsibility/ComponentWithContextualHelp/) | GUI contextual help: `Button` → `Dialog` → `Panel` → `Window` |
 | **Observer (event system)** | [`observer_pattern/EventManager/`](../observer_pattern/EventManager/) | Editor events: `Editor` publishes `open`/`save`; `LogOpenListener`, `EmailNotificationListener` subscribe |
 | **Observer + Proxy** | [`observer_pattern/StockMonitoring/`](../observer_pattern/StockMonitoring/) | Stock feed: `StockFeedProxy` gates access; `RealStockFeed` broadcasts to `StockObserver`, `Dashboard`, `PriceAlert` |
-| **Proxy** | [`proxy_design_pattern/`](../proxy_design_pattern/) | Standalone Proxy controlling a `StockObserver` |
+| **Proxy** | [`proxy_design_pattern/YouTubeManager/`](../proxy_design_pattern/YouTubeManager/) | Caching proxy: `YouTubeCacheProxy` wraps `ThirdPartyYouTubeClass` to cache expensive remote video downloads |
 
 ---
 
