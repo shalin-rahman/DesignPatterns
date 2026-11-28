@@ -251,7 +251,90 @@ sequenceDiagram
 
 ---
 
-## 6. Build & Execution
+## 6. Step-by-Step Dry Run Walkthrough
+
+### Initial State & Successor Wiring
+
+When `Main` executes, containers automatically wire their children's successor links (`container`) upon calling `add(child)`:
+
+```
+[okButton]      ──(container)──▶ [loginDialog] ──(container)──▶ [mainPanel] ──(container)──▶ [appWindow] ──▶ null
+[cancelButton]  ──(container)──▶ [loginDialog]
+```
+
+| Object | Type | Local Help State | Successor (`container`) |
+| :--- | :--- | :--- | :--- |
+| `okButton` | `Button` | `tooltipText = "Click OK..."` | `loginDialog` |
+| `cancelButton` | `Button` | `tooltipText = null` | `loginDialog` |
+| `loginDialog` | `Dialog` | `wikiPageUrl = "https://example.com/docs/login-dialog"` | `mainPanel` |
+| `mainPanel` | `Panel` | `modalHelpText = null` | `appWindow` |
+| `appWindow` | `Window` | `globalHelpGuide = "Welcome to Help Center..."` | `null` (Terminal Handler) |
+
+---
+
+### Scenario 1: `okButton.showHelp()` (Early Termination at Link 1)
+
+1. **Hop 1 — `okButton` (`Button` extends `Component`)**:
+   - Executes inherited `Component.showHelp()`.
+   - Evaluates: `if (tooltipText != null)` $\rightarrow$ **`true`** (`"Click OK to submit your login credentials."`).
+   - Action: Prints `[Button] Showing tooltip: "Click OK to submit your login credentials."`.
+   - **Chain Terminates**: Neither `container` nor any upstream parent is invoked.
+
+```text
+[Button] Showing tooltip: "Click OK to submit your login credentials."
+```
+
+---
+
+### Scenario 2: `cancelButton.showHelp()` (Passes Button → Terminates at Dialog)
+
+1. **Hop 1 — `cancelButton` (`Button` extends `Component`)**:
+   - Evaluates: `if (tooltipText != null)` $\rightarrow$ `false` (`tooltipText == null`).
+   - Evaluates: `else if (container != null)` $\rightarrow$ **`true`** (`container == loginDialog`).
+   - Action: Prints `[Button] No tooltip — forwarding to Dialog...`.
+   - Delegates: `loginDialog.showHelp()`.
+2. **Hop 2 — `loginDialog` (`Dialog` extends `Container`)**:
+   - Executes overridden `Dialog.showHelp()`.
+   - Evaluates: `if (wikiPageUrl != null)` $\rightarrow$ **`true`** (`"https://example.com/docs/login-dialog"`).
+   - Action: Prints `[Dialog] Opening wiki page for context-specific help: https://example.com/docs/login-dialog`.
+   - **Chain Terminates**: `mainPanel` and `appWindow` are never contacted.
+
+```text
+[Button] No tooltip — forwarding to Dialog...
+[Dialog] Opening wiki page for context-specific help: https://example.com/docs/login-dialog
+```
+
+---
+
+### Scenario 3: `bareButton.showHelp()` (Full Traversal to Terminal Window Fallback)
+
+Hierarchy: `bareButton` (`tooltip = null`) $\rightarrow$ `bareDialog` (`wiki = null`) $\rightarrow$ `barePanel` (`modal = null`) $\rightarrow$ `appWindow` (`globalHelpGuide`).
+
+1. **Hop 1 — `bareButton` (`Button`)**:
+   - `tooltipText == null` $\rightarrow$ delegates to `bareDialog`.
+   - Output: `[Button] No tooltip — forwarding to Dialog...`.
+2. **Hop 2 — `bareDialog` (`Dialog`)**:
+   - `wikiPageUrl == null` $\rightarrow$ delegates to `barePanel`.
+   - Output: `[Dialog] No wiki page — forwarding to Panel...`.
+3. **Hop 3 — `barePanel` (`Panel`)**:
+   - `modalHelpText == null` $\rightarrow$ delegates to `appWindow`.
+   - Output: `[Panel] No modal help — forwarding to Window...`.
+4. **Hop 4 — `appWindow` (`Window`)**:
+   - `Window.showHelp()` acts as root fallback (`container == null`).
+   - Action: Prints global help guide.
+   - **Chain Terminates**.
+
+```text
+[Button] No tooltip — forwarding to Dialog...
+[Dialog] No wiki page — forwarding to Panel...
+[Panel] No modal help — forwarding to Window...
+[Window] No specific help found in the chain.
+[Window] Displaying global help guide: "Welcome to the Help Center! Use the navigation bar to find topics."
+```
+
+---
+
+## 7. Build & Execution
 
 ### Compile
 ```powershell
@@ -291,15 +374,11 @@ java Main
 =================================================================
    Chain of Responsibility Demonstration Complete
 =================================================================
-Key takeaway: the chain is a relay race — it stops the moment
-a handler can answer.  Compare to Observer (everyone notified)
-and Proxy (one dedicated gatekeeper, not a chain).
-=================================================================
 ```
 
 ---
 
-## 7. Cross-Pattern References & Deep Comparison
+## 8. Cross-Pattern References & Deep Comparison
 
 The full 5-pattern comparative analysis (head-to-head confusion pairs, restaurant analogies, combined architecture, and decision flowcharts) is documented separately in:
 
